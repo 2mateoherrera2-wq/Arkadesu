@@ -28,10 +28,12 @@ const EFX=[
 const pcl=c=>c.pcol||c.col;
 
 // ===== SONIDO (sintetizado con WebAudio, sin archivos). Tecla M = silenciar / activar =====
-let AC=null,MG=null,MUTE=0,PS='',BEEP=-1,PRL=0;
+let AC=null,MG=null,MUTE=0,PS='',BEEP=-1,PRL=0,VOL=10,PAU=0,PI=0,PH=0;
 try{MUTE=localStorage.getItem('smashar_mute')=='1'?1:0}catch(e){}
-function au(){if(AC===null){try{AC=new(window.AudioContext||window.webkitAudioContext)();MG=AC.createGain();MG.gain.value=.35;MG.connect(AC.destination)}catch(e){AC=0}}
+try{const v=localStorage.getItem('smashar_vol');if(v!=null)VOL=Math.max(0,Math.min(10,Math.round(+v||0)))}catch(e){}
+function au(){if(AC===null){try{AC=new(window.AudioContext||window.webkitAudioContext)();MG=AC.createGain();MG.gain.value=.35*VOL/10;MG.connect(AC.destination)}catch(e){AC=0}}
  if(AC&&AC.state=='suspended')AC.resume();return AC}
+function setVol(v){VOL=Math.max(0,Math.min(10,v));try{localStorage.setItem('smashar_vol',VOL)}catch(e){}if(MG)MG.gain.value=.35*VOL/10}
 function muteT(){MUTE=MUTE?0:1;try{localStorage.setItem('smashar_mute',MUTE)}catch(e){}toast='SONIDO '+(MUTE?'APAGADO':'ENCENDIDO');tt=90;if(!MUTE)sfx('ok')}
 function tone(f,d,ty,v,f2,dl){const a=au();if(!a||MUTE)return;const t=a.currentTime+(dl||0),o=a.createOscillator(),g=a.createGain();
  o.type=ty||'square';o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);
@@ -223,7 +225,9 @@ function getIn(i){const m=MAP[i],o={l:keys[m.l],r:keys[m.r],d:keys[m.d],u:keys[m
 
 function key(k){
 const ok=k=='enter'||k==' '||k=='f',up=k=='w'||k=='arrowup',dn=k=='s'||k=='arrowdown';
-if(scene=='fight'){if(TEST&&k=='escape'){TEST=0;scene='ed'}return}
+if(scene=='fight'){if(PAU){pauKey(k);return}
+ if(TEST){if(k=='escape'){TEST=0;scene='ed'}return}
+ if(k=='escape'||k=='p'){PAU=1;PI=0;PH=0;sfx('ok')}return}
 if(scene=='title'){if(ok){scene='menu';sfx('ok')}return}
 if(MENUS[scene]){const L=MENUS[scene];if(up){mi=(mi+L.length-1)%L.length;sfx('move')}if(dn){mi=(mi+1)%L.length;sfx('move')}if(ok){sfx('ok');pick(scene,mi)}return}
 if(scene=='help'){if(ok||k=='escape'){scene='menu';sfx('back')}return}
@@ -251,7 +255,7 @@ function sync(){if(mode=='cpu'){if(ready[0]&&!ready[1]){sel[1]=Math.random()*CHA
  if(mode!='local'&&conn&&conn.open)conn.send({t:'sel',i:me,c:sel[me],r:ready[me],x:cur[me].x,y:cur[me].y});if(mode!='guest'&&scene=='select'&&ready[0]&&ready[1])toStage()}
 
 // ===== ONLINE (WebRTC con PeerJS, sin servidor propio) =====
-function leave(m){try{conn&&conn.close();net&&net.destroy()}catch(e){}conn=net=null;mode='local';loadCh();scene='menu';mi=0;if(m){toast=m;tt=200}}
+function leave(m){PAU=0;try{conn&&conn.close();net&&net.destroy()}catch(e){}conn=net=null;mode='local';loadCh();scene='menu';mi=0;if(m){toast=m;tt=200}}
 function host(){try{net&&net.destroy()}catch(e){}mode='host';me=0;scene='wait';room='';conn=null;
 const code=Math.random().toString(36).slice(2,6).toUpperCase();net=new Peer('smashar-'+code);
 net.on('open',()=>room=code);
@@ -275,7 +279,7 @@ function snap(){if(conn&&conn.open)conn.send({t:'st',p:G.p.map(p=>[p.x,p.y,p.f,p
 
 // ===== JUEGO =====
 function mk(i){const c=CHARS[sel[i]];return{i,c,x:MAPS[SM].sp[i],y:150,dx:MAPS[SM].sp[i],dy:150,vx:0,vy:0,f:i?-1:1,dmg:0,st:3,jc:2,at:0,ad:0,cd:0,sc:0,stun:0,inv:0,gr:0,se:0,stt:0}}
-function initMatch(){applyMap(SM);BEEP=-1;PRL=0;Object.assign(AI,{t:0,mt:0,mx:0,jt:0,kite:0,rk:1});G={p:[mk(0),mk(1)],pr:[],n:0,sh:0,w:-1,ev:[]}}
+function initMatch(){PAU=0;applyMap(SM);BEEP=-1;PRL=0;Object.assign(AI,{t:0,mt:0,mx:0,jt:0,kite:0,rk:1});G={p:[mk(0),mk(1)],pr:[],n:0,sh:0,w:-1,ev:[]}}
 function toStage(){scene='stage';if(mode=='host'&&conn&&conn.open)conn.send({t:'stg',i:SI})}
 function start(m){SM=m;initMatch();scene='fight';if(mode=='host')conn.send({t:'go',c:sel,m})}
 function pe(r){return G.p[r.o].c.pe||0}
@@ -323,9 +327,10 @@ if(scene=='select'){[0,1].forEach(i=>{if(mode!='local'&&i!=me)return;const m=MAP
  const h=hov(i);if(!ready[i]&&h>=0)sel[i]=h});
  if(mode!='local'&&fr%3==0&&conn&&conn.open)conn.send({t:'sel',i:me,c:sel[me],r:ready[me],x:cur[me].x,y:cur[me].y});return}
 if(scene!='fight')return;
-if(mode=='guest'){const i=getIn(0);conn&&conn.open&&conn.send({t:'in',l:i.l,r:i.r,d:i.d,u:i.u,j:i.j,a:i.a,s:i.s});
+if(PAU&&(mode=='local'||mode=='cpu'))return;
+if(mode=='guest'){let i=getIn(0);if(PAU)i={};conn&&conn.open&&conn.send({t:'in',l:i.l,r:i.r,d:i.d,u:i.u,j:i.j,a:i.a,s:i.s});
  G.p.forEach(p=>{p.dx+=(p.x-p.dx)*.5;p.dy+=(p.y-p.dy)*.5});return}
-const i0=getIn(0);let i1;if(mode=='cpu'){const b=getIn(1);for(const k in b)i0[k]=i0[k]||b[k];i1=cpuIn()}else if(mode=='host'){i1=rin;rin={l:i1.l,r:i1.r,d:i1.d,u:i1.u}}else i1=getIn(1);
+let i0=getIn(0),i1;if(PAU)i0={};if(mode=='cpu'){const b=getIn(1);for(const k in b)i0[k]=i0[k]||b[k];i1=cpuIn()}else if(mode=='host'){i1=rin;rin={l:i1.l,r:i1.r,d:i1.d,u:i1.u}}else i1=getIn(1);
 step([i0,i1])}
 
 // ===== CPU: rival controlado por la IA en "Vs CPU" =====
@@ -368,6 +373,31 @@ function cpuIn(){const D=DIFS[CPUD],A=AI,p=G.p[1],o=G.p[0],I={};
  if(p.sc==0&&fc==p.f&&Math.random()<D.sh*(A.kite?3:1)){const k=p.c.pe||0;if((Math.abs(dy)<46||k==4||k==7||k==8)&&ad>(k==7?120:70))I.s=1}
  if(mx)I[mx>0?'r':'l']=1;else if(ad>8&&ad<64&&fc!=p.f)I[fc>0?'r':'l']=1;
  return I}
+
+// ===== MENU DE PAUSA (ESC o P en combate) =====
+function pItems(){const lp=mode=='local'||mode=='cpu';return['cont','snd','vol','ctl'].concat(lp?['rst']:[],['out'])}
+function ptx(id){return id=='cont'?'CONTINUAR':id=='snd'?'SONIDO: '+(MUTE?'NO':'SI'):id=='vol'?'VOLUMEN: ['+'#'.repeat(VOL)+'.'.repeat(10-VOL)+'] '+VOL*10+'%':id=='ctl'?'CONTROLES':id=='rst'?'REINICIAR COMBATE':'SALIR AL MENU'}
+function pauOut(){PAU=0;edge=[{},{}];sfx('back')}
+function pauAct(id){
+ if(id=='cont')pauOut();
+ else if(id=='snd')muteT();
+ else if(id=='ctl'){PH=1;sfx('ok')}
+ else if(id=='rst'){PAU=0;edge=[{},{}];initMatch();sfx('ok')}
+ else if(id=='out'){PAU=0;edge=[{},{}];sfx('back');
+  if(mode=='local'||mode=='cpu'){const c=mode=='cpu';mode='local';scene=c?'cpu':'menu';mi=c?CPUD:0}else leave()}}
+function pauKey(k){const L=pItems(),up=k=='w'||k=='arrowup',dn=k=='s'||k=='arrowdown',lf=k=='a'||k=='arrowleft',rt=k=='d'||k=='arrowright',ok=k=='enter'||k==' '||k=='f'||k=='k';
+ if(PH){if(ok||k=='escape'||k=='p'){PH=0;sfx('back')}return}
+ if(k=='escape'||k=='p'){pauOut();return}
+ if(up){PI=(PI+L.length-1)%L.length;sfx('move');return}
+ if(dn){PI=(PI+1)%L.length;sfx('move');return}
+ const id=L[PI];
+ if(id=='vol'){if(lf||rt){setVol(VOL+(rt?1:-1));sfx('edit')}}
+ else if(ok||((lf||rt)&&id=='snd'))pauAct(id)}
+function pauDraw(){const L=pItems();bx(30,6,60,24,'#fde047',1);tx('=== PAUSA ===',60,8,'#fde047',0,1);
+ if(PH){['J1: A/D MOVER - W SALTAR (DOBLE SALTO) - S BAJAR','F GOLPE (W+F ARRIBA, S+F EN AIRE: ABAJO) - G DISPARO','J2: FLECHAS MOVER - K GOLPE - L DISPARO','ESC O P: PAUSA     M: SONIDO'].forEach((t,i)=>tx(t,60,12+i*3,'#fff',0,1));tx('ENTER PARA VOLVER',60,26,'#94a3b8',0,1);return}
+ L.forEach((id,i)=>{const on=i==PI,t=ptx(id);tx(on?'> '+t.padEnd(52):'  '+t,34,11+i*2,on?'#000':'#fff',on?'#fde047':0)});
+ tx('ARRIBA/ABAJO + ENTER   IZQ/DER: CAMBIAR   ESC: CONTINUAR',60,27,'#94a3b8',0,1);
+ if(mode!='local'&&mode!='cpu')tx('ONLINE: LA PARTIDA NO SE DETIENE',60,28,'#f87171',0,1)}
 
 // ===== DIBUJO (ASCII: todo son caracteres de texto en una rejilla de 120x34) =====
 // Personajes: añade c.ascii=['fila1','fila2','fila3'] (3 filas x 3 columnas) para tu propio sprite de texto
@@ -417,7 +447,7 @@ for(let i=0;i<=N;i++){const x=15+(i%3)*31,y=4+(i/3|0)*9,on=i==SI,m=i<N?MAPS[i]:0
  else tx('?',x+15,y+4,'#fde047',0,1);
  if(on&&fr%20<14){tx('>',x-2,y+3,'#fde047');tx('<',x+31,y+3,'#fde047')}}
 const c=SI<N?MAPS[SI]:0;tx(c?c.n+': '+c.d:'ALEATORIO: UN ESCENARIO AL AZAR',60,31,'#94a3b8',0,1)}
-function hlp(){['J1: A/D MOVER - W SALTAR (DOBLE SALTO) - S BAJAR','F GOLPE (W+F ARRIBA, S+F EN AIRE: ABAJO) - G DISPARO','J2: FLECHAS MOVER - K GOLPE - L DISPARO','MAS DANO % = SALES VOLANDO MAS LEJOS','ONLINE: AMBOS USAN LOS CONTROLES DE J1','VS CPU: PUEDES USAR LOS CONTROLES DE J1 O DE J2','ENTER PARA VOLVER'].forEach((s,i)=>tx(s,60,8+i*3,i==6?'#94a3b8':'#fff',0,1))}
+function hlp(){['J1: A/D MOVER - W SALTAR (DOBLE SALTO) - S BAJAR','F GOLPE (W+F ARRIBA, S+F EN AIRE: ABAJO) - G DISPARO','J2: FLECHAS MOVER - K GOLPE - L DISPARO','MAS DANO % = SALES VOLANDO MAS LEJOS','ONLINE: AMBOS USAN LOS CONTROLES DE J1','VS CPU: PUEDES USAR LOS CONTROLES DE J1 O DE J2','EN COMBATE: ESC O P = PAUSA','ENTER PARA VOLVER'].forEach((s,i)=>tx(s,60,8+i*3,i==7?'#94a3b8':'#fff',0,1))}
 // ===== EFECTOS: partículas y animaciones =====
 const PT=[],FXs=[0,1].map(()=>({sp:0,lx:0,ly:0,dy:0,dd:0,hf:0,on:0,air:0,st:3,at:0,dm:0})),lc=[0,0],rd=[0,0],ph=[-1,-1];
 let FL=0,KO=0,ls='',ts=0,pmi=-1,goF=0;
@@ -511,7 +541,7 @@ function flush(){X.fillStyle=BG;X.fillRect(0,0,CO*CW,RO*CH);X.save();
  X.restore();
  if(FL>0){X.fillStyle='rgba(255,255,255,'+Math.min(.5,FL*.06)+')';X.fillRect(0,0,CO*CW,RO*CH)}}
 function draw(){fr++;if(ls!=scene){ls=scene;ts=fr}BG=(scene=='fight'||scene=='result')?MAPS[SM].t.bg:'#050805';clr();
-if(scene=='fight'||scene=='result'){world();if(scene=='result')res()}
+if(scene=='fight'||scene=='result'){world();if(scene=='result')res();if(scene=='fight'&&PAU)pauDraw()}
 else{pts(1);if(scene=='title')titl();else{stars();if(MENUS[scene])menu({menu:'MENU PRINCIPAL',cpu:'DIFICULTAD'}[scene]||'ONLINE',MENUS[scene]);else if(scene=='help')hlp();else if(scene=='wait')wt();else if(scene=='select')sele();else if(scene=='stage')stg();else if(scene=='ed')edDraw()}pts(0)}
 if(tt>0){tt--;fl(0,1,CO,1,'#b91c1c');tx(toast,60,1,'#fff','#b91c1c',1)}
 flush()}
