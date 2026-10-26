@@ -196,28 +196,28 @@ function edView(){const c=CHARS[ED.ci],F=ED.f,row=i=>6+i,lab=i=>tx((F==i?'> ':' 
 // sp: donde aparece cada jugador (debe haber una plataforma debajo). Todos los mapas deben tener plataforma en x=480 (ahi reaparecen)
 // t: tema visual. top/tc = borde y su color, b/bc = relleno y colores, rows = filas de relleno, sm = color de plataformas finas, st/cl = estrellas y nubes, pa/pc/pv = particulas
 const MAPS=[
-{n:'LLANURA',d:'CLASICO: SUELO Y DOS PLATAFORMAS',sp:[320,640],pl:[{x:200,y:400,w:560},{x:260,y:290,w:140,s:1},{x:560,y:290,w:140,s:1}],
+{n:'prairie',d:'classic',sp:[320,640],pl:[{x:200,y:400,w:560},{x:260,y:290,w:140,s:1},{x:560,y:290,w:140,s:1}],
  t:{bg:'#050805',st:'#334155',cl:'#475569',top:'=',tc:'#4ade80',b:['#','%'],bc:['#a16207','#854d0e'],rows:2,sm:'#e879f9',pa:['.'],pc:'#334155',pv:-.6}},
-{n:'TORRE',d:'MUCHOS PISOS PARA SUBIR Y BAJAR',sp:[355,605],pl:[{x:300,y:430,w:360},{x:130,y:350,w:150,s:1},{x:680,y:350,w:150,s:1},{x:300,y:270,w:130,s:1},{x:530,y:270,w:130,s:1},{x:410,y:170,w:140,s:1}],
+{n:'tower',d:'climb while you fight',sp:[355,605],pl:[{x:300,y:430,w:360},{x:130,y:350,w:150,s:1},{x:680,y:350,w:150,s:1},{x:300,y:270,w:130,s:1},{x:530,y:270,w:130,s:1},{x:410,y:170,w:140,s:1}],
  t:{bg:'#060610',st:'#3b3b6b',cl:'#4b5280',top:'=',tc:'#94a3b8',b:['#','H'],bc:['#64748b','#475569'],rows:2,sm:'#60a5fa',pa:['.'],pc:'#334155',pv:-.6}},
-{n:'ISLAS',d:'ISLAS SEPARADAS: CUIDADO AL CAER',sp:[185,775],pl:[{x:380,y:400,w:200},{x:90,y:330,w:190},{x:680,y:330,w:190},{x:300,y:230,w:120,s:1},{x:540,y:230,w:120,s:1}],
+{n:'the isles',d:'avoid falling',sp:[185,775],pl:[{x:380,y:400,w:200},{x:90,y:330,w:190},{x:680,y:330,w:190},{x:300,y:230,w:120,s:1},{x:540,y:230,w:120,s:1}],
  t:{bg:'#04090f',st:'#1e4a6b',cl:'#2b6a8f',top:'=',tc:'#2dd4bf',b:['#','%'],bc:['#a16207','#713f12'],rows:3,sm:'#a3e635',pa:['.','o'],pc:'#155e75',pv:-.5}},
-{n:'DESTINO',d:'UNA SOLA PLATAFORMA PLANA, SIN TRUCOS',sp:[300,660],pl:[{x:160,y:390,w:640}],
+{n:'destiny',d:'plain platform',sp:[300,660],pl:[{x:160,y:390,w:640}],
  t:{bg:'#0a0510',st:'#5b21b6',cl:'#6d28d9',top:'=',tc:'#e879f9',b:['#','%'],bc:['#6d28d9','#4c1d95'],rows:3,sm:'#a78bfa',pa:['*','.'],pc:'#6d28d9',pv:-.5}},
-{n:'PUENTE',d:'LARGO PUENTE CON PLATAFORMAS ARRIBA',sp:[280,680],pl:[{x:100,y:410,w:760},{x:220,y:300,w:120,s:1},{x:620,y:300,w:120,s:1},{x:420,y:200,w:120,s:1}],
+{n:'the bridge',d:'dont look down',sp:[280,680],pl:[{x:100,y:410,w:760},{x:220,y:300,w:120,s:1},{x:620,y:300,w:120,s:1},{x:420,y:200,w:120,s:1}],
  t:{bg:'#0a0704',st:'#57534e',cl:'#78716c',top:'=',tc:'#fbbf24',b:['#','|'],bc:['#92400e','#78350f'],rows:1,sm:'#fbbf24',pa:['.'],pc:'#44403c',pv:-.6}},
-{n:'VOLCAN',d:'SUELO CORTO Y BRASAS EN EL AIRE',sp:[185,775],pl:[{x:330,y:420,w:300},{x:110,y:340,w:150,s:1},{x:700,y:340,w:150,s:1},{x:400,y:280,w:160,s:1}],
+{n:'volcano',d:'sparks and embers',sp:[185,775],pl:[{x:330,y:420,w:300},{x:110,y:340,w:150,s:1},{x:700,y:340,w:150,s:1},{x:400,y:280,w:160,s:1}],
  t:{bg:'#140403',st:'#7f1d1d',cl:'#991b1b',top:'=',tc:'#fb923c',b:['#','%'],bc:['#7f1d1d','#450a0a'],rows:2,sm:'#f87171',pa:['*','.','^'],pc:'#f97316',pv:-1}},
-{n:'VAIVEN',d:'PLATAFORMAS QUE SE MUEVEN DE LADO A LADO',sp:[180,780],pl:[{x:380,y:420,w:200},{x:150,y:330,w:140,s:1,mv:{ax:110,sp:.03,ph:0}},{x:670,y:330,w:140,s:1,mv:{ax:110,sp:-.03,ph:0}},{x:410,y:250,w:140,s:1}],
+{n:'sway',d:'side to side',sp:[180,780],pl:[{x:380,y:420,w:200},{x:150,y:330,w:140,s:1,mv:{ax:110,sp:.03,ph:0}},{x:670,y:330,w:140,s:1,mv:{ax:110,sp:-.03,ph:0}},{x:410,y:250,w:140,s:1}],
  t:{bg:'#03090a',st:'#115e59',cl:'#0f766e',top:'=',tc:'#22d3ee',b:['#','%'],bc:['#0e7490','#155e75'],rows:2,sm:'#67e8f9',pa:['.'],pc:'#155e75',pv:-.6}},
-{n:'NUBES',d:'SIN SUELO: NUBES MOVILES',sp:[215,745],pl:[{x:400,y:380,w:160},{x:150,y:300,w:130,s:1,mv:{ax:60,sp:.025,ph:0}},{x:680,y:300,w:130,s:1,mv:{ax:60,sp:-.025,ph:0}},{x:280,y:190,w:130,s:1,mv:{ax:90,sp:.02,ph:2}},{x:550,y:190,w:130,s:1,mv:{ax:90,sp:.02,ph:4}}],
+{n:'sky',d:'no floor only clouds',sp:[215,745],pl:[{x:400,y:380,w:160},{x:150,y:300,w:130,s:1,mv:{ax:60,sp:.025,ph:0}},{x:680,y:300,w:130,s:1,mv:{ax:60,sp:-.025,ph:0}},{x:280,y:190,w:130,s:1,mv:{ax:90,sp:.02,ph:2}},{x:550,y:190,w:130,s:1,mv:{ax:90,sp:.02,ph:4}}],
  t:{bg:'#07101c',st:'#475569',cl:'#94a3b8',top:'~',tc:'#f1f5f9',b:['(',')'],bc:['#cbd5e1','#94a3b8'],rows:1,sm:'#e2e8f0',pa:['.'],pc:'#475569',pv:-.6}}];
 let SM=0,SI=0,PL=[];
 function applyMap(i){SM=i;PL=MAPS[i].pl.map(q=>{const o=Object.assign({},q);o.x0=q.x;o.dx=0;if(q.mv)o.x=q.x+Math.sin(q.mv.ph)*q.mv.ax;return o})}
 function mvPl(){PL.forEach(q=>{if(q.mv){const nx=q.x0+Math.sin(Math.max(0,G.n-150)*q.mv.sp+q.mv.ph)*q.mv.ax;q.dx=nx-q.x;q.x=nx}})}
 applyMap(0);
 const MAP=[{l:'a',r:'d',u:'w',d:'s',a:'f',s:'g'},{l:'arrowleft',r:'arrowright',u:'arrowup',d:'arrowdown',a:'k',s:'l'}];
-const MENUS={menu:['Versus local','Vs CPU','Online','Editor de personajes','Controles'],online:['Crear sala','Unirse a sala','Volver'],cpu:['Facil','Normal','Dificil','Volver']};
+const MENUS={menu:['local vs','vs CPU','online','character garage','instructions'],online:['host','join','go back'],cpu:['easy','medium','hard','go back']};
 const mr=(i,L)=>L.length>4?9+i*4:11+i*5;
 let scene='title',mi=0,mode='local',me=0,sel=[0,1],ready=[0,0],keys={},edge=[{},{}],rin={},net,conn,room='',toast='',tt=0,G,fr=0;
 
