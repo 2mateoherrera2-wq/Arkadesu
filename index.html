@@ -41,7 +41,6 @@ main{max-width:680px;margin:0 auto}
 @keyframes brillo{to{background-position:-200% 0}}
 .sub{text-align:center;color:var(--gris);margin:0 0 36px}
 
-h2{font-size:1rem;font-weight:bold;color:var(--amarillo);margin:0 0 14px}
 ul{list-style:none;margin:0;padding:0;display:grid;gap:14px}
 
 /* tarjeta de juego: se resalta como la opción elegida del menú del juego */
@@ -87,10 +86,9 @@ noscript{display:block;color:var(--rojo);text-align:center}
  / ___ \ |  _ < | . \  / ___ \ | |_| || |___  ___) || |_| |
 /_/   \_\|_| \_\|_|\_\/_/   \_\|____/ |_____||____/  \___/ 
 </pre>
-<p class="sub">Juegos para jugar en el navegador</p>
+<p class="sub">Virtual Arcade Night</p>
 
-<h2>Elige un juego</h2>
-<ul id="lista"></ul>
+<ul id="lista" aria-label="Juegos"></ul>
 <noscript>Activa JavaScript para ver la lista de juegos.</noscript>
 
 <p class="ayuda">Flechas arriba y abajo para elegir, Enter para jugar</p>
@@ -101,7 +99,7 @@ noscript{display:block;color:var(--rojo);text-align:center}
 // Para añadir un juego nuevo: crea la carpeta games/<carpeta>/ con su index.html
 // y copia una de estas líneas con sus datos.
 const JUEGOS=[
-  {nombre:'Arkadesu:001',carpeta:'arkadesu001',desc:'Lucha de plataformas en ASCII. Juega contra la CPU, en local o en línea.',meta:'1-2 jugadores'}
+  {nombre:'Arkadesu:001',carpeta:'arkadesu001',desc:'Platform Fighter',meta:'1-2 players'}
 ];
 
 const lista=document.getElementById('lista');
