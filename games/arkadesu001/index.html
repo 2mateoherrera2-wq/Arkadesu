@@ -1,11 +1,8 @@
 <!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Arkadesu:001</title>
-<style>html,body{margin:0;height:100%;background:#050505;display:flex;align-items:center;justify-content:center}canvas{width:min(100vw,calc(100vh*16/9));background:#000}
-#portal{position:fixed;top:8px;left:8px;z-index:5;padding:4px 10px;font:bold 14px "Courier New",Consolas,monospace;color:#4ade80;background:rgba(5,8,5,.75);border:2px solid #4ade80;text-decoration:none;opacity:.55;transition:opacity .15s}
-#portal:hover{opacity:1;color:#fde047;border-color:#fde047}</style></head>
+<style>html,body{margin:0;height:100%;background:#050505;display:flex;align-items:center;justify-content:center}canvas{width:min(100vw,calc(100vh*16/9));background:#000}</style></head>
 <body><canvas id="c" width="960" height="540"></canvas>
-<a id="portal" href="../../" tabindex="-1" title="Volver al portal (Esc en la pantalla de título)">&lt;= ARKADESU</a>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
 const C=document.getElementById('c'),B=document.createElement('canvas'),W=960,H=540;B.width=W;B.height=H;const X=B.getContext('2d');
@@ -231,7 +228,7 @@ const ok=k=='enter'||k==' '||k=='f',up=k=='w'||k=='arrowup',dn=k=='s'||k=='arrow
 if(scene=='fight'){if(PAU){pauKey(k);return}
  if(TEST){if(k=='escape'){TEST=0;scene='ed'}return}
  if(k=='escape'||k=='p'){PAU=1;PI=0;PH=0;sfx('ok')}return}
-if(scene=='title'){if(ok){scene='menu';sfx('ok')}else if(k=='escape')location.href='../../';return}
+if(scene=='title'){if(ok){scene='menu';sfx('ok')}return}
 if(MENUS[scene]){const L=MENUS[scene];
 if(k=='escape'){sfx('back');if(scene=='menu'){scene='title';mi=0}else if(scene=='cpu'){scene='menu';mi=1}else{scene='menu';mi=2}return}
 if(up){mi=(mi+L.length-1)%L.length;sfx('move')}if(dn){mi=(mi+1)%L.length;sfx('move')}if(ok){sfx('ok');pick(scene,mi)}return}
@@ -587,7 +584,6 @@ function crt(){if(gl){gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_
 else{c2.imageSmoothingEnabled=false;c2.drawImage(B,0,0,C.width,C.height)}}
 
 let last=0,acc=0;
-const PB=document.getElementById('portal');
-function loop(t){acc+=Math.min(50,t-last);last=t;PB.style.display=scene=='fight'?'none':'';while(acc>=16.67){acc-=16.67;tick()}draw();crt();requestAnimationFrame(loop)}
+function loop(t){acc+=Math.min(50,t-last);last=t;while(acc>=16.67){acc-=16.67;tick()}draw();crt();requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
 </script></body></html>
