@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arkadesu - Juegos</title>
+<meta name="description" content="Juegos en el navegador de Arkadesu.">
+<style>
+:root{
+  --bg:#050805;
+  --verde:#4ade80;
+  --amarillo:#fde047;
+  --rojo:#f87171;
+  --gris:#94a3b8;
+  --linea:#64748b;
+  --fuente:"Courier New",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{color-scheme:dark}
+body{
+  margin:0;min-height:100vh;background:var(--bg);color:#e2e8f0;
+  font-family:var(--fuente);font-size:16px;line-height:1.5;
+  padding:clamp(20px,5vw,56px) 16px 40px;
+}
+/* scanlines suaves, como el CRT del juego */
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:10;
+  background:repeating-linear-gradient(to bottom,rgba(0,0,0,.18) 0 1px,transparent 1px 3px);
+}
+main{max-width:680px;margin:0 auto}
+
+/* logo: el mismo que la pantalla de título del juego */
+.logo{
+  margin:0 0 6px;text-align:center;font-weight:bold;
+  font-size:clamp(6px,2.4vw,17px);line-height:1.15;letter-spacing:0;white-space:pre;overflow:hidden;
+  color:transparent;-webkit-background-clip:text;background-clip:text;
+  background-image:linear-gradient(90deg,#fde047,#fb923c,#f87171,#fb923c,#fde047,#fb923c,#f87171,#fb923c,#fde047);
+  background-size:200% 100%;
+  animation:brillo 4s linear infinite;
+}
+@keyframes brillo{to{background-position:-200% 0}}
+.sub{text-align:center;color:var(--gris);margin:0 0 36px}
+
+h2{font-size:1rem;font-weight:bold;color:var(--amarillo);margin:0 0 14px}
+ul{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+
+/* tarjeta de juego: se resalta como la opción elegida del menú del juego */
+.juego{
+  display:block;position:relative;text-decoration:none;color:#e2e8f0;
+  border:2px solid var(--linea);padding:14px 18px 14px 46px;background:var(--bg);
+}
+.juego::before{
+  content:"-=>";position:absolute;left:12px;top:14px;color:var(--amarillo);font-weight:bold;opacity:0;
+}
+.juego .nombre{display:block;font-size:1.25rem;font-weight:bold;color:var(--verde)}
+.juego .desc{display:block;margin:4px 0 8px;color:#cbd5e1}
+.juego .meta{display:flex;justify-content:space-between;gap:12px;color:var(--gris);font-size:.9rem}
+.juego .jugar{color:var(--amarillo);font-weight:bold}
+.juego:hover,.juego:focus-visible{
+  background:var(--amarillo);border-color:var(--amarillo);color:#000;outline:none;
+}
+.juego:hover::before,.juego:focus-visible::before{opacity:1;color:#000}
+.juego:hover .nombre,.juego:focus-visible .nombre,
+.juego:hover .desc,.juego:focus-visible .desc,
+.juego:hover .meta,.juego:focus-visible .meta,
+.juego:hover .jugar,.juego:focus-visible .jugar{color:#000}
+
+.pronto{
+  border:2px dashed #475569;padding:14px 18px 14px 46px;color:#8391a7;
+}
+.pronto .nombre{display:block;font-size:1.25rem;font-weight:bold}
+
+.ayuda{margin:34px 0 0;text-align:center;color:var(--linea);font-size:.9rem}
+noscript{display:block;color:var(--rojo);text-align:center}
+
+@media (prefers-reduced-motion:reduce){
+  .logo{animation:none}
+}
+</style>
+</head>
+<body>
+<main>
+<pre class="logo" aria-label="Arkadesu">
+    _     ____   _  __    _     ____   _____  ____   _   _ 
+   / \   |  _ \ | |/ /   / \   |  _ \ | ____|/ ___| | | | |
+  / _ \  | |_) || ' /   / _ \  | | | ||  _|  \___ \ | | | |
+ / ___ \ |  _ < | . \  / ___ \ | |_| || |___  ___) || |_| |
+/_/   \_\|_| \_\|_|\_\/_/   \_\|____/ |_____||____/  \___/ 
+</pre>
+<p class="sub">Juegos para jugar en el navegador</p>
+
+<h2>Elige un juego</h2>
+<ul id="lista"></ul>
+<noscript>Activa JavaScript para ver la lista de juegos.</noscript>
+
+<p class="ayuda">Flechas arriba y abajo para elegir, Enter para jugar</p>
+</main>
+
+<script>
+// ===== LISTA DE JUEGOS =====
+// Para añadir un juego nuevo: crea la carpeta games/<carpeta>/ con su index.html
+// y copia una de estas líneas con sus datos.
+const JUEGOS=[
+  {nombre:'Arkadesu:001',carpeta:'arkadesu001',desc:'Lucha de plataformas en ASCII. Juega contra la CPU, en local o en línea.',meta:'1-2 jugadores'}
+];
+
+const lista=document.getElementById('lista');
+JUEGOS.forEach(j=>{
+  const li=document.createElement('li'),a=document.createElement('a');
+  a.className='juego';a.href='games/'+j.carpeta+'/';
+  a.innerHTML='<span class="nombre"></span><span class="desc"></span><span class="meta"><span></span><span class="jugar">Jugar</span></span>';
+  a.querySelector('.nombre').textContent=j.nombre;
+  a.querySelector('.desc').textContent=j.desc;
+  a.querySelector('.meta span').textContent=j.meta||'';
+  li.appendChild(a);lista.appendChild(li);
+});
+const p=document.createElement('li');
+p.className='pronto';
+p.innerHTML='<span class="nombre">Próximamente</span>Aquí aparecerá el siguiente juego.';
+lista.appendChild(p);
+
+// Navegación con el teclado
+addEventListener('keydown',e=>{
+  if(e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;
+  const L=[...document.querySelectorAll('a.juego')];if(!L.length)return;
+  e.preventDefault();
+  const i=L.indexOf(document.activeElement),d=e.key==='ArrowDown'?1:-1;
+  L[i<0?(d>0?0:L.length-1):(i+d+L.length)%L.length].focus();
+});
+</script>
+</body>
+</html>
