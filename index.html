@@ -27,7 +27,16 @@ body::after{
   content:"";position:fixed;inset:0;pointer-events:none;z-index:10;
   background:repeating-linear-gradient(to bottom,rgba(0,0,0,.18) 0 1px,transparent 1px 3px);
 }
-main{max-width:680px;margin:0 auto}
+main{max-width:680px;margin:0 auto;position:relative;z-index:1}
+.sub,.ayuda{text-shadow:0 0 6px #000,0 0 12px #000}
+
+/* fondo psicodélico de olas ASCII */
+#olas{
+  position:absolute;top:0;left:0;width:100%;height:clamp(220px,34vw,300px);
+  z-index:0;pointer-events:none;
+  -webkit-mask-image:linear-gradient(to bottom,#000 55%,transparent);
+  mask-image:linear-gradient(to bottom,#000 55%,transparent);
+}
 
 /* logo: el mismo que la pantalla de título del juego */
 .logo{
@@ -43,26 +52,32 @@ main{max-width:680px;margin:0 auto}
 
 ul{list-style:none;margin:0;padding:0;display:grid;gap:14px}
 
-/* tarjeta de juego: se resalta como la opción elegida del menú del juego */
+/* tarjeta de juego: borde y texto siempre con el degradado animado del logo */
 .juego{
   display:block;position:relative;text-decoration:none;color:#e2e8f0;
-  border:2px solid var(--linea);padding:14px 18px 14px 46px;background:var(--bg);
+  border:2px solid transparent;padding:14px 18px 14px 46px;
+  background-image:linear-gradient(var(--bg),var(--bg)),linear-gradient(90deg,#fde047,#fb923c,#f87171,#fb923c,#fde047,#fb923c,#f87171,#fb923c,#fde047);
+  background-origin:padding-box,border-box;
+  background-clip:padding-box,border-box;
+  background-size:100% 100%,200% 100%;
+  animation:brillo 4s linear infinite;
+  outline:none;
 }
+/* la flecha solo aparece al pasar el mouse o elegir con el teclado */
 .juego::before{
   content:"-=>";position:absolute;left:12px;top:14px;color:var(--amarillo);font-weight:bold;opacity:0;
 }
-.juego .nombre{display:block;font-size:1.25rem;font-weight:bold;color:var(--verde)}
-.juego .desc{display:block;margin:4px 0 8px;color:#cbd5e1}
-.juego .meta{display:flex;justify-content:space-between;gap:12px;color:var(--gris);font-size:.9rem}
-.juego .jugar{color:var(--amarillo);font-weight:bold}
-.juego:hover,.juego:focus-visible{
-  background:var(--amarillo);border-color:var(--amarillo);color:#000;outline:none;
+.juego:hover::before,.juego:focus-visible::before{opacity:1}
+.juego .nombre,.juego .desc,.juego .meta span{
+  color:transparent;-webkit-background-clip:text;background-clip:text;
+  background-image:linear-gradient(90deg,#fde047,#fb923c,#f87171,#fb923c,#fde047,#fb923c,#f87171,#fb923c,#fde047);
+  background-size:200% 100%;
+  animation:brillo 4s linear infinite;
 }
-.juego:hover::before,.juego:focus-visible::before{opacity:1;color:#000}
-.juego:hover .nombre,.juego:focus-visible .nombre,
-.juego:hover .desc,.juego:focus-visible .desc,
-.juego:hover .meta,.juego:focus-visible .meta,
-.juego:hover .jugar,.juego:focus-visible .jugar{color:#000}
+.juego .nombre{display:block;font-size:1.25rem;font-weight:bold}
+.juego .desc{display:block;margin:4px 0 8px}
+.juego .meta{display:flex;justify-content:space-between;gap:12px;font-size:.9rem}
+.juego .jugar{font-weight:bold}
 
 .pronto{
   border:2px dashed #475569;padding:14px 18px 14px 46px;color:#8391a7;
@@ -73,11 +88,12 @@ ul{list-style:none;margin:0;padding:0;display:grid;gap:14px}
 noscript{display:block;color:var(--rojo);text-align:center}
 
 @media (prefers-reduced-motion:reduce){
-  .logo{animation:none}
+  .logo,.juego,.juego *{animation:none}
 }
 </style>
 </head>
 <body>
+<canvas id="olas" aria-hidden="true"></canvas>
 <main>
 <pre class="logo" aria-label="Arkadesu">
     _     ____   _  __    _     ____   _____  ____   _   _ 
@@ -99,7 +115,8 @@ noscript{display:block;color:var(--rojo);text-align:center}
 // Para añadir un juego nuevo: crea la carpeta games/<carpeta>/ con su index.html
 // y copia una de estas líneas con sus datos.
 const JUEGOS=[
-  {nombre:'Arkadesu:001',carpeta:'arkadesu001',desc:'Platform Fighter',meta:'1-2 players'}
+  {nombre:'Arkadesu:001',carpeta:'arkadesu001',desc:'Platform Fighter',meta:'1-2 players'},
+  {nombre:'Arkadesu:002',carpeta:'arkadesu002',desc:'Tower Race',meta:'1-2 players'}
 ];
 
 const lista=document.getElementById('lista');
@@ -116,6 +133,63 @@ const p=document.createElement('li');
 p.className='pronto';
 p.innerHTML='<span class="nombre">Próximamente</span>Aquí aparecerá el siguiente juego.';
 lista.appendChild(p);
+
+// ===== FONDO: OLAS ASCII PSICODÉLICAS =====
+(function(){
+  const cv=document.getElementById('olas'),cx=cv.getContext('2d');
+  const RAMPA=' .·:~-=≈+*#%@';       // de menos a más intensidad
+  const TAM=15;                       // tamaño de cada carácter (px)
+  const ALPHA=0.38;                   // visibilidad del fondo (sube para más intensidad)
+  const quieto=matchMedia('(prefers-reduced-motion:reduce)').matches;
+  let W,H,cols,filas,raf=0;
+
+  function medir(){
+    const d=Math.min(devicePixelRatio||1,2);
+    W=cv.clientWidth;H=cv.clientHeight;
+    cv.width=W*d;cv.height=H*d;
+    cx.setTransform(d,0,0,d,0,0);
+    cols=Math.ceil(W/(TAM*.6))+1;filas=Math.ceil(H/TAM)+1;
+    cx.font='bold '+TAM+'px "Courier New",Consolas,monospace';
+    cx.textBaseline='top';
+  }
+
+  function dibujar(ms){
+    const t=ms/1000;
+    cx.clearRect(0,0,W,H);
+    cx.globalAlpha=ALPHA;
+    const cw=TAM*.6;
+    for(let y=0;y<filas;y++){
+      for(let x=0;x<cols;x++){
+        // varias ondas superpuestas: lineales, diagonales y circulares
+        const dx=x-cols/2,dy=(y-filas/2)*1.8;
+        let v=Math.sin(x*.09+t*1.1)
+             +Math.sin(y*.22-t*1.5+Math.sin(x*.05+t)*2)
+             +Math.sin((x+y*1.6)*.07+t*.8)
+             +Math.sin(Math.sqrt(dx*dx+dy*dy)*.12-t*1.8);
+        v=(v+4)/8;                                  // 0..1
+        const i=Math.floor(v*v*(RAMPA.length-1)+.5);
+        if(i===0)continue;
+        // tonos de verde: el matiz oscila entre verde lima y verde azulado
+        const hue=135+Math.sin(v*5+t*.9+x*.03+y*.05)*35;
+        const luz=30+v*38+Math.sin(t*1.2+x*.04)*6;  // brilla más en las crestas
+        cx.fillStyle='hsl('+hue+',100%,'+luz+'%)';
+        cx.fillText(RAMPA[i],x*cw,y*TAM);
+      }
+    }
+  }
+
+  function bucle(ms){dibujar(ms);raf=requestAnimationFrame(bucle)}
+  function iniciar(){
+    cancelAnimationFrame(raf);medir();
+    if(quieto)dibujar(4000);else raf=requestAnimationFrame(bucle);
+  }
+  addEventListener('resize',iniciar);
+  document.addEventListener('visibilitychange',()=>{
+    if(quieto)return;
+    if(document.hidden)cancelAnimationFrame(raf);else raf=requestAnimationFrame(bucle);
+  });
+  iniciar();
+})();
 
 // Navegación con el teclado
 addEventListener('keydown',e=>{
