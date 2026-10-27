@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arkadesu:002 - Roulette</title>
+<style>html,body{margin:0;height:100%;background:#050505;display:flex;align-items:center;justify-content:center}
+#w{position:relative;width:min(100vw,calc(100vh*16/9))}
+canvas{width:100%;display:block;background:#050805}
+#portal{position:fixed;top:8px;left:8px;z-index:5;padding:4px 10px;font:bold 14px "Courier New",Consolas,monospace;color:#4ade80;background:rgba(5,8,5,.75);border:2px solid #4ade80;text-decoration:none;opacity:.55;transition:opacity .15s}
+#portal:hover{opacity:1;color:#fde047;border-color:#fde047}</style></head>
+<body><div id="w"><canvas id="c" width="960" height="540"></canvas></div>
+<a id="portal" href="../../" tabindex="-1" title="Back to the portal">&lt;= ARKADESU</a>
+<script>
+// ===== ARKADESU:002 - RUSSIAN ROULETTE: rock, paper, scissors; the loser pulls the trigger =====
+const C=document.getElementById('c'),B=document.createElement('canvas'),W=960,H=540,PB=document.getElementById('portal');B.width=W;B.height=H;const cx=B.getContext('2d');
+const FONT=s=>'bold '+s+'px "Courier New",Consolas,monospace';
+const GUN=["      ###                                    ##", "      ##################========================", "      ####### ## ## ############################", "         #### ## ## ####", "         #### ## ## ####", "         #### ## ## ####", "        ########  ######", "       ###### #       #", "      ######       ###", "     ######", "    ######"];
+const MAP=[{l:'a',d:'s',r:'d',u:'w',a:'f',b:'g'},{l:'arrowleft',d:'arrowdown',r:'arrowright',u:'arrowup',a:'k',b:'l'}];
+const PC=['#f87171','#60a5fa'],MI=['1 PLAYER (VS CPU)','2 PLAYERS','RULES'],HC=['#94a3b8','#e2e8f0','#f87171'];
+const HANDS=[['  _____  ',' /     \\ ','|   #   |',' \\_____/ '],['  _____  ',' |=====| ',' |=====| ',' |_____| '],[' \\     / ','  \\   /  ','   \\ /   ','  O   O  ']];
+const BF={B:['#### ','#   #','#### ','#   #','#### '],A:[' ### ','#   #','#####','#   #','#   #'],N:['#   #','##  #','# # #','#  ##','#   #'],G:[' ####','#    ','# ###','#   #',' ####'],'!':['  #  ','  #  ','  #  ','     ','  #  '],C:[' ####','#    ','#    ','#    ',' ####'],L:['#    ','#    ','#    ','#    ','#####'],I:[' ### ','  #  ','  #  ','  #  ',' ### '],K:['#   #','#  # ','###  ','#  # ','#   #']};
+const rnd=Math.random,pn=i=>mode=='cpu'&&i?'CPU':'P'+(i+1),who=k=>MAP.findIndex(m=>Object.values(m).includes(k));
+let scene='title',mode='cpu',mi=0,score=[0,0],ph='pick',pt=0,ch=[null,null],lo=0,cyl={b:0,p:0},hitv=0,spinF=0,msg='',dead=-1,shk=0,fl=0,fr=0,ls='',ts=0,GR=[],AC=null,MUTE=0;
+const LG=String.raw`    _     ____   _  __    _     ____   _____  ____   _   _ 
+   / \   |  _ \ | |/ /   / \   |  _ \ | ____|/ ___| | | | |
+  / _ \  | |_) || ' /   / _ \  | | | ||  _|  \___ \ | | | |
+ / ___ \ |  _ < | . \  / ___ \ | |_| || |___  ___) || |_| |
+/_/   \_\|_| \_\|_|\_\/_/   \_\|____/ |_____||____/  \___/ `.split('\n');
+// ===== SONIDO =====
+function au(){if(!AC)try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}if(AC&&AC.state=='suspended')AC.resume()}
+let NB=null; // todos los sonidos son disparos: rafaga de ruido + golpe grave; el BANG es el mas grande
+function sfx(f,d=.08,ty,v=.05,f2){
+ if(!AC||MUTE)return;
+ const t=AC.currentTime,big=d>=.4,len=Math.max(.06,Math.min(big?1.1:.35,d*(big?1.8:2.2)));
+ if(!NB){NB=AC.createBuffer(1,AC.sampleRate,AC.sampleRate);const a=NB.getChannelData(0);for(let k=0;k<a.length;k++)a[k]=Math.random()*2-1}
+ const n=AC.createBufferSource(),fl=AC.createBiquadFilter(),g=AC.createGain();
+ n.buffer=NB;fl.type='lowpass';fl.frequency.setValueAtTime(Math.min(6000,Math.max(500,f*(big?8:5))),t);fl.frequency.exponentialRampToValueAtTime(big?300:900,t+len);
+ g.gain.setValueAtTime(Math.min(.5,v*(big?4:6)),t);g.gain.exponentialRampToValueAtTime(.0001,t+len);
+ n.connect(fl);fl.connect(g);g.connect(AC.destination);n.start(t,rnd()*.5);n.stop(t+len);
+ const o=AC.createOscillator(),g2=AC.createGain();o.type='sine';
+ o.frequency.setValueAtTime(big?140:Math.min(220,f/2+60),t);o.frequency.exponentialRampToValueAtTime(40,t+len*.7);
+ g2.gain.setValueAtTime(Math.min(.5,v*(big?5:3)),t);g2.gain.exponentialRampToValueAtTime(.0001,t+len*.8);
+ o.connect(g2);g2.connect(AC.destination);o.start(t);o.stop(t+len)}
+// ===== CUADRICULA DE CARACTERES (igual que Arkadesu:001) =====
+const G0={c:['   ',' _ ','(_)',' _ ','(_)'],o:['  ___  ',' / _ \\ ','| | | |','| |_| |',' \\___/ '],t:[' ____  ','|___ \\ ','  __) |',' / __/ ','|_____|']};
+const LA=[0,1,2,3,4].map(r=>G0.c[r]+G0.o[r]+G0.o[r]+G0.t[r]); // ":002"
+const PAL1=['#fde047','#fbbf24','#fb923c','#f87171','#fb923c','#fbbf24'],PAL2=['#ef4444','#f43f5e','#e879f9','#f43f5e','#ef4444','#fb923c'];
+const CO=120,RO=34,CW=8,CH=16,BG='#050805',mr=(i,L)=>L.length>4?9+i*4:11+i*5;
+function gclr(){GR=Array.from({length:RO},()=>Array(CO).fill(null))}
+function gpc(c,r,ch,fg,bg){c=Math.floor(c);r=Math.floor(r);if(c<0||r<0||c>=CO||r>=RO)return;GR[r][c]=[ch,fg,bg]}
+function gtx(s,c,r,fg,bg,al){s=String(s);if(al)c-=s.length>>1;for(let i=0;i<s.length;i++)if(s[i]!=' '||bg)gpc(c+i,r,s[i],fg,bg)}
+function gfl(c,r,w,h,bg){for(let y=0;y<h;y++)for(let x=0;x<w;x++)gpc(c+x,r+y,' ',null,bg)}
+function gbx(c,r,w,h,fg,fill){if(fill)gfl(c,r,w,h,BG);for(let i=1;i<w-1;i++){gpc(c+i,r,'-',fg);gpc(c+i,r+h-1,'-',fg)}
+ for(let j=1;j<h-1;j++){gpc(c,r+j,'|',fg);gpc(c+w-1,r+j,'|',fg)}[[0,0],[w-1,0],[0,h-1],[w-1,h-1]].forEach(a=>gpc(c+a[0],r+a[1],'+',fg))}
+function gflush(){cx.fillStyle=BG;cx.fillRect(0,0,W,H);cx.font='bold 14px "Courier New",Consolas,monospace';cx.textAlign='center';cx.textBaseline='middle';let last='';
+ for(let r=0;r<RO;r++)for(let c=0;c<CO;c++){const k=GR[r][c];if(!k)continue;
+  if(k[2]){cx.fillStyle=k[2];cx.fillRect(c*CW,r*CH,CW,CH);last=''}
+  if(k[0]!=' '){if(k[1]!=last){cx.fillStyle=k[1];last=k[1]}cx.fillText(k[0],c*CW+CW/2,r*CH+CH/2+1)}}}
+function gstars(){for(let i=0;i<70;i++)gpc((i*53)%CO,(i*29)%22,(fr+i*7)%90<4?'*':'.','#334155')}
+function big(s,c,r,col){c-=s.length*3;[...s].forEach((ch,i)=>(BF[ch]||[]).forEach((row,j)=>[...row].forEach((v,k)=>{if(v=='#')gpc(c+i*6+k,r+j,'#',col)})))}
+function shim(L,c,r,pal,dir){const e=Math.min(1,(fr-ts)/35),o=Math.round((1-e)*(1-e)*70*dir);
+ L.forEach((l,i)=>[...l].forEach((ch,k)=>{if(ch!=' ')gpc(c+o+k,r+i,ch,pal[(k+i*2+(fr>>1))%pal.length])}))}
+// ===== TEXTO PIXEL Y PERSONAJES =====
+function tx(s,x,y,c,sz=16,al='left'){cx.font=FONT(sz);cx.fillStyle=c;cx.textAlign=al;cx.textBaseline='top';cx.fillText(s,x,y)}
+function stars(o){cx.font=FONT(12);cx.fillStyle='#334155';cx.textAlign='left';cx.textBaseline='top';for(let i=0;i<70;i++)cx.fillText('.',(i*137)%W,(((i*53)%H+o*(.2+i%5*.1))%H+H)%H)}
+// ===== TITULO / MENU / REGLAS =====
+function titl(){shim(LG,31,3,PAL1,-1);shim(LA,48,9,PAL2,1);
+ gtx('ROULETTE',60,15,'#94a3b8',0,1);if(fr%60<40)gtx('[ PRESS START ]',60,18,'#fff',0,1);}
+function gmenu(){const L=MI;gtx('=== MAIN MENU ===',60,5,'#fde047',0,1);
+ L.forEach((s,i)=>{const r=mr(i,L),on=i==mi;
+  if(on){gbx(38,r,44,3,'#fde047',1);gfl(39,r+1,42,1,'#fde047');gtx(s,60,r+1,'#000','#fde047',1);gtx('-=>',33+(fr>>3&1)*2,r+1,'#fde047');
+   for(let k=1;k<43;k++)if((k+(fr>>1))%7==0){gpc(38+k,r,'*','#fff');gpc(38+k,r+2,'*','#fff')}}
+  else{gbx(38,r,44,3,'#b91c1c',1);gtx(s,60,r+1,'#fff',0,1)}});
+ gtx('UP/DOWN + ENTER     ESC: BACK     M: SOUND',60,31,'#94a3b8',0,1)}
+function gctl(){gtx('=== RULES ===',60,3,'#fde047',0,1);
+ ['ROCK, PAPER OR SCISSORS: BOTH PICK AT THE SAME TIME, IN SECRET','P1: A ROCK - S PAPER - D SCISSORS      P2: LEFT / DOWN / RIGHT ARROW','VS CPU: YOU CAN USE P1 OR P2 CONTROLS','',
+  'THE LOSER OF THE HAND PULLS THE TRIGGER IN RUSSIAN ROULETTE','THE REVOLVER HAS 6 CHAMBERS AND 1 BULLET','SPIN: RISK 1/6.  NO SPIN: THE RISK GROWS WITH EVERY SHOT','AND WHAT YOU DO NOT SPIN CARRIES OVER TO THE NEXT TURNS','WHOEVER TAKES THE BULLET LOSES THE MATCH','','ESC: MENU   -   ENTER TO GO BACK']
+ .forEach((s,k)=>gtx(s,60,6+k*2,k==10?'#94a3b8':'#fff',0,1))}
+// ===== SELECCION DE PERSONAJE =====
+// ===== JUEGO =====
+function spinCyl(){cyl={b:(rnd()*6)|0,p:0}}
+function startGame(){ph='pick';ch=[null,null];dead=-1;pt=0;msg='';spinCyl();scene='play'}
+function doPull(sp){if(sp)spinCyl();spinF=sp;hitv=cyl.p==cyl.b;cyl.p++;ph='pull';pt=0;sfx(250,.08)}
+function playTick(){
+ pt++;
+ if(ph=='pick'){
+  if(mode=='cpu'&&ch[0]!=null&&ch[1]==null&&pt>40)ch[1]=(rnd()*3)|0;
+  if(ch[0]!=null&&ch[1]!=null){ph='count';pt=0}}
+ else if(ph=='count'){if(pt==1||pt==20||pt==40||pt==60)sfx(pt==60?880:440,.1);
+  if(pt>=80){const a=ch[0],b=ch[1];ph='reveal';pt=0;sfx(660,.2);
+   if(a==b)msg='DRAW';else{lo=(a-b+3)%3==1?1:0;msg=pn(lo^1)+' WINS THE HAND'}}}
+ else if(ph=='reveal'&&pt>=90){if(ch[0]==ch[1]){ph='pick';ch=[null,null];pt=0}else{ph='choose';pt=0;msg=pn(lo)+' LOSES THE HAND AND PLAYS THE ROULETTE'}}
+ else if(ph=='choose'){if(mode=='cpu'&&lo==1&&pt>80)doPull(cyl.p>=3||rnd()<.3?1:0)}
+ else if(ph=='pull'){const T=spinF?70:30;msg='PULLING THE TRIGGER...';
+  if(pt<T&&pt%4==0)sfx(300+pt*4,.03,'square',.03);
+  if(pt>=T){if(hitv){ph='bang';pt=0;shk=40;fl=14;dead=lo;score[lo^1]++;sfx(90,.6,'sawtooth',.12,30)}else{ph='click';pt=0;sfx(1200,.05,'square',.06)}}}
+ else if(ph=='click'&&pt>=90){ph='pick';ch=[null,null];pt=0}
+ else if(ph=='bang'&&pt>=120){ph='over';pt=0}}
+function tick(){fr++;if(shk>0)shk--;if(fl>0)fl--;
+ if(scene=='play')playTick()}
+function key(k){
+ const ok=['enter',' ','f','g','k','l'].includes(k),up=k=='w'||k=='arrowup',dn=k=='s'||k=='arrowdown';
+ if(k=='m'){MUTE^=1;return}
+ if(scene=='title'){if(k=='escape'){location.href='../../';return}if(ok){scene='menu';sfx(660,.1)}return}
+ if(scene=='menu'){if(k=='escape'){scene='title';sfx(300,.08);return}
+  if(up)mi=(mi+2)%3;if(dn)mi=(mi+1)%3;if(up||dn)sfx(440,.05);
+  if(ok){sfx(660,.1);if(mi==2)scene='ctl';else{mode=mi?'2p':'cpu';score=[0,0];startGame()}}return}
+ if(scene=='ctl'){if(ok||k=='escape')scene='menu';return}
+ if(scene=='play'){
+  if(k=='escape'){scene='menu';return}
+  if(ph=='over'){if(k=='enter'||k==' ')startGame();return}
+  const w=who(k);if(w<0)return;const i=mode=='cpu'?0:w,m=MAP[w];
+  if(ph=='pick'&&ch[i]==null){const v=k==m.l?0:k==m.d?1:k==m.r?2:-1;if(v>=0){ch[i]=v;sfx(500+v*100,.08)}}
+  else if(ph=='choose'&&i==lo&&pt>20){if(k==m.l)doPull(1);else if(k==m.r)doPull(0)}}}
+addEventListener('keydown',e=>{const k=e.key.toLowerCase();au();if(k.startsWith('arrow')||k==' ')e.preventDefault();if(!e.repeat)key(k)});
+// ===== DIBUJO DE LA PARTIDA =====
+function gcyl(){
+ const T=spinF?70:30,done=ph=='click'||ph=='bang'||ph=='over',last=(cyl.p-1+6)%6;
+ const shown=ph=='choose'?cyl.p%6:ph=='pull'&&spinF&&pt<T-12?(fr>>(pt<T-30?1:2))%6:last;
+ GUN.forEach((r,j)=>[...r].forEach((ch,k)=>{if(ch!=' ')gpc(24+k,10+j,ch,ch=='='?'#e2e8f0':'#94a3b8')}));
+ if(ph=='bang'&&fr%6<3)gtx('*** ',72,11,'#fde047');
+ const dx=86,dy=15;
+ for(let a=0;a<48;a++){const t=a/48*Math.PI*2;gpc(dx+Math.cos(t)*10,dy+Math.sin(t)*4.6,'o','#475569')}
+ const P=[[0,-3],[5,-1],[5,1],[0,3],[-5,1],[-5,-1]];
+ for(let i=0;i<6;i++){const q=P[(i-shown+6)%6];let c='O',col='#64748b';
+  if(i==shown){c='@';col='#fde047';if(done){c=hitv?'*':'o';col=hitv?'#f87171':'#4ade80'}}
+  gtx('('+c+')',dx+q[0]-1,dy+q[1],col)}
+ gtx('(+)',dx-1,dy,'#475569');gtx('V',dx,dy-5,'#e2e8f0');gtx('CYLINDER',dx,dy+6,'#94a3b8',0,1)}
+function dPlay(){
+ gclr();gstars();
+ gtx('=== RUSSIAN ROULETTE ===',60,0,'#fde047',0,1);
+ gtx(pn(0)+'  '+score[0]+' - '+score[1]+'  '+pn(1),60,2,'#fff',0,1);
+ const gun=['choose','pull','click','bang','over'].includes(ph);
+ if(gun){gcyl();
+  if(ph=='click')big('CLICK',60,4,'#4ade80');
+  else if(ph=='bang'||ph=='over')big('BANG!',60,4,fr%6<3?'#fff':'#f87171');
+  else gtx(msg,60,5,'#fde047',0,1)}
+ else if(ph=='pick'){gtx('PICK IN SECRET',60,9,'#94a3b8',0,1);[0,1].forEach(i=>gtx(ch[i]==null?'[ ... ]':'[ READY ]',i?82:38,13,ch[i]==null?'#64748b':'#4ade80',0,1))}
+ else if(ph=='count')gtx(['ROCK','PAPER','SCISSORS','GO!'][Math.min(3,pt/20|0)],60,12,'#fde047',0,1);
+ else{[0,1].forEach(i=>HANDS[ch[i]].forEach((s,j)=>gtx(s,i?82:38,9+j,HC[ch[i]],0,1)));gtx('VS',60,10,'#f87171',0,1);gtx(msg,60,15,'#fde047',0,1)}
+ [0,1].forEach(i=>{const x=i?99:2,w=i?19:20,out=dead==i,win=ph=='over'&&dead!=i,hot=gun&&lo==i&&ph!='over'&&ph!='bang';
+  gbx(x,13,w,6,out?'#475569':PC[i],1);gtx(pn(i),x+(w>>1),14,out?'#64748b':PC[i],0,1);
+  const st=out?'ELIMINATED':win?'SURVIVOR':ph=='pick'?(ch[i]==null?'PICKING...':'READY'):hot?'ON THE HOT SEAT':'';
+  gtx(st,x+(w>>1),16,win&&fr%20<12?'#fde047':out?'#64748b':'#fff',0,1)});
+ let LN=[[],[]];
+ if(ph=='pick')LN=[['A  ROCK','S  PAPER','D  SCISSORS'],mode=='cpu'?['','CPU PICKS ALONE']:['<  ROCK','v  PAPER','>  SCISSORS']];
+ else if(ph=='choose'){LN[lo]=mode=='cpu'&&lo?['CPU DECIDES...']:lo?['<  SPIN + SHOOT','>  SHOOT, NO SPIN']:['A  SPIN + SHOOT','D  SHOOT, NO SPIN'];
+  gtx('RISK:  SPIN 1/6   -   NO SPIN 1/'+(6-cyl.p),60,22,'#94a3b8',0,1)}
+ else if(ph=='over'){gtx(pn(dead^1)+' SURVIVES AND WINS THE MATCH!',60,24,PC[dead^1],0,1);gtx('ENTER: ANOTHER MATCH      ESC: MENU',60,26,'#fff',0,1)}
+ LN.forEach((L,i)=>L.forEach((s,j)=>gtx(s,i?108:12,20+j,PC[i],0,1)));
+ gflush()}
+function draw(){
+ PB.style.display=scene=='play'?'none':'';
+ if(ls!=scene){ls=scene;ts=fr}
+ cx.fillStyle=BG;cx.fillRect(0,0,W,H);cx.save();
+ if(shk>0)cx.translate((rnd()-.5)*shk*.5,(rnd()-.5)*shk*.5);
+ if(scene=='play')dPlay();else{gclr();gstars();({title:titl,menu:gmenu,ctl:gctl})[scene]();gflush()}
+ cx.restore();
+ if(fl>0){cx.fillStyle='rgba(255,255,255,'+Math.min(.6,fl*.07)+')';cx.fillRect(0,0,W,H)}}
+// ===== EFECTO CRT (WebGL): curvatura, scanlines, máscara RGB, brillo de fósforo, viñeta, ruido =====
+const gl=C.getContext('webgl',{antialias:false}),c2=gl?0:C.getContext('2d'),t0=performance.now();let prog,uT;
+function rs(){const w=Math.min(innerWidth,innerHeight*16/9)*Math.min(devicePixelRatio||1,2);C.width=Math.round(Math.min(w,1920));C.height=Math.round(C.width*9/16);gl&&gl.viewport(0,0,C.width,C.height)}
+if(gl){
+ const sh=(t,s)=>{const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);return o};
+ prog=gl.createProgram();
+ gl.attachShader(prog,sh(gl.VERTEX_SHADER,'attribute vec2 p;varying vec2 v;void main(){v=p*.5+.5;v.y=1.-v.y;gl_Position=vec4(p,0.,1.);}'));
+ gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,`precision mediump float;uniform sampler2D t;uniform float T;varying vec2 v;
+float h(vec2 s){return fract(sin(dot(s,vec2(12.9898,78.233)))*43758.5453);}
+void main(){
+ vec2 w=v*2.-1.;w*=1.+dot(w,w)*vec2(.025,.04);vec2 u=w*.5+.5;
+ vec2 e=abs(w)-vec2(.92);float rc=length(max(e,0.))-.08;float ed=1.-smoothstep(-.01,.01,rc);
+ if(ed<=0.){gl_FragColor=vec4(0.,0.,0.,1.);return;}
+ float k=.0015;
+ vec3 c=vec3(texture2D(t,u+vec2(k,0.)).r,texture2D(t,u).g,texture2D(t,u-vec2(k,0.)).b);
+ vec3 g=(texture2D(t,u+vec2(.004,0.)).rgb+texture2D(t,u-vec2(.004,0.)).rgb+texture2D(t,u+vec2(0.,.007)).rgb+texture2D(t,u-vec2(0.,.007)).rgb)*.25;
+ c+=g*.45;
+ c*=.72+.28*cos(u.y*270.*6.2832);
+ float m=mod(gl_FragCoord.x,3.);c*=.88+.36*vec3(step(m,1.),step(1.,m)*step(m,2.),step(2.,m));
+ c*=.96+.04*sin(T*50.)+.03*sin(u.y*6.-T*1.5);
+ c+=(h(u*vec2(960.,540.)+fract(T)*100.)-.5)*.05;
+ vec2 q=u-.5;c*=1.-dot(q,q)*1.3;
+ gl_FragColor=vec4(c*1.25*ed,1.);}`));
+ gl.linkProgram(prog);gl.useProgram(prog);
+ gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+ const l=gl.getAttribLocation(prog,'p');gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,2,gl.FLOAT,false,0,0);
+ gl.bindTexture(gl.TEXTURE_2D,gl.createTexture());
+ [gl.TEXTURE_MIN_FILTER,gl.TEXTURE_MAG_FILTER].forEach(k=>gl.texParameteri(gl.TEXTURE_2D,k,gl.LINEAR));
+ [gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T].forEach(k=>gl.texParameteri(gl.TEXTURE_2D,k,gl.CLAMP_TO_EDGE));
+ uT=gl.getUniformLocation(prog,'T');
+}
+addEventListener('resize',rs);rs();
+function crt(){if(gl){gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,B);gl.uniform1f(uT,(performance.now()-t0)/1000);gl.drawArrays(gl.TRIANGLE_STRIP,0,4)}
+else{c2.imageSmoothingEnabled=false;c2.drawImage(B,0,0,C.width,C.height)}}
+
+let acc=0,last=0;
+function loop(t){acc+=Math.min(50,t-last);last=t;while(acc>=16.67){acc-=16.67;tick()}draw();crt();requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+</script></body></html>
