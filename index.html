@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Arkadesu - Games</title>
-<meta name="description" content="Browser games by Arkadesu.">
+<title>Arkadesu - Juegos</title>
+<meta name="description" content="Juegos en el navegador de Arkadesu.">
 <style>
 :root{
   --bg:#050805;
@@ -76,7 +76,6 @@ ul{list-style:none;margin:0;padding:0;display:grid;gap:14px}
 }
 .juego .nombre{display:block;font-size:1.25rem;font-weight:bold}
 .juego .desc{display:block;margin:4px 0 8px}
-.juego .sub2{display:block;color:var(--gris);font-size:.9rem}
 .juego .meta{display:flex;justify-content:space-between;gap:12px;font-size:.9rem}
 .juego .jugar{font-weight:bold}
 
@@ -105,10 +104,10 @@ noscript{display:block;color:var(--rojo);text-align:center}
 </pre>
 <p class="sub">Virtual Arcade Night</p>
 
-<ul id="lista" aria-label="Games"></ul>
-<noscript>Enable JavaScript to see the game list.</noscript>
+<ul id="lista" aria-label="Juegos"></ul>
+<noscript>Activa JavaScript para ver la lista de juegos.</noscript>
 
-<p class="ayuda">Up and down arrows to choose, Enter to play</p>
+<p class="ayuda">Flechas arriba y abajo para elegir, Enter para jugar</p>
 </main>
 
 <script>
@@ -116,24 +115,23 @@ noscript{display:block;color:var(--rojo);text-align:center}
 // Para añadir un juego nuevo: crea la carpeta games/<carpeta>/ con su index.html
 // y copia una de estas líneas con sus datos.
 const JUEGOS=[
-  {nombre:'Arkadesu:001',sub:'Showdown',carpeta:'arkadesu001',desc:'Platform Fighter',meta:'1-2 players'}
+  {nombre:'Arkadesu:001',carpeta:'arkadesu001',desc:'Platform Fighter',meta:'1-2 players'},
+  {nombre:'Arkadesu:002',carpeta:'arkadesu002',desc:'Russian Roulette',meta:'1-2 players'}
 ];
 
 const lista=document.getElementById('lista');
 JUEGOS.forEach(j=>{
   const li=document.createElement('li'),a=document.createElement('a');
   a.className='juego';a.href='games/'+j.carpeta+'/';
-  a.innerHTML='<span class="nombre"></span><span class="sub2"></span><span class="desc"></span><span class="meta"><span></span><span class="jugar">Play</span></span>';
+  a.innerHTML='<span class="nombre"></span><span class="desc"></span><span class="meta"><span></span><span class="jugar">Jugar</span></span>';
   a.querySelector('.nombre').textContent=j.nombre;
-  a.querySelector('.sub2').textContent=j.sub||'';
-  a.querySelector('.sub2').hidden=!j.sub;
   a.querySelector('.desc').textContent=j.desc;
   a.querySelector('.meta span').textContent=j.meta||'';
   li.appendChild(a);lista.appendChild(li);
 });
 const p=document.createElement('li');
 p.className='pronto';
-p.innerHTML='<span class="nombre">Coming soon</span>The next game will appear here.';
+p.innerHTML='<span class="nombre">Próximamente</span>Aquí aparecerá el siguiente juego.';
 lista.appendChild(p);
 
 // ===== FONDO: OLAS ASCII PSICODÉLICAS =====
