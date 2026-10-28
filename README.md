@@ -9,6 +9,8 @@ Arkadesu is an online ASCII arcade-style website.
 
 .............................................................
 # Games avaliable
+**000:outside**
+
 **001:showdown**
 
 **002:roulette**
