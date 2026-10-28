@@ -1,8 +1,7 @@
 # Arkadesu
-###
----------------
-Introduction
----------------
-   Arkadesu it's a online acsii videogames website.
-   
-<img src="https://raw.githubusercontent.com/arkadesu/images/main/horario.png" width="50%">
+
+**Virtual Arcade Night**
+
+Arkadesu is an online ASCII arcade-style game site.  
+The arcade only opens between **11:00 PM and 2:00 AM**.  
+Outside those hours you can hang out on the main page.
