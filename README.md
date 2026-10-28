@@ -5,4 +5,4 @@
 Introduction
 ---------------
    Arkadesu it's a online acsii videogames website.
-![SCHEDULE]https://github.com/arkadesu/images/raw/main/horario.png
+https://github.com/arkadesu/images/raw/main/horario.png
