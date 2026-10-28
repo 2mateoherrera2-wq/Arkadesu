@@ -1,5 +1,5 @@
 # Arkadesu
-=========================
+<img src="https://github.com/arkadesu/images/blob/main/social%20preview.jpg?raw=true" width="50%">
 ###
 ---------------
 Introduction
