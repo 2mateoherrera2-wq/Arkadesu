@@ -6,6 +6,7 @@
 Arkadesu is an online ASCII arcade-style website.  
 🟢The arcade only opens between **11:00 PM and 2:00 AM**.🟢  
 🔴Outside the schedule, you can hang out on the main page.🔴
+
 .............................................................
 # Games avaliable
 **001:showdown**
