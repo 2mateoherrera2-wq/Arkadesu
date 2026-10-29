@@ -307,6 +307,7 @@ function escena(now){
  else if(fase=='zoom'){p=1;const u=Math.min(1,(now-tf)/2400),e=u*u*(3-2*u);s=Math.exp(Math.log(ZS)*e);FC.style.opacity=1-Math.max(0,(u-.7)/.3);if(u>=1)setFase('portal')}
  fx.setTransform(D,0,0,D,0,0);fx.fillStyle=BGC;fx.fillRect(0,0,W,H);lastCol='';
  fx.setTransform(D*s,0,0,D*s,D*(ZX-s*ZX),D*(ZY-s*ZY));
+ if(JG.back&&fase=='cerrado'){JG.back==2?atras(t,now):callejon(t,now);return}
  // cielo nocturno: estrellas, luna y nubes que pasan
  STARS.forEach(o=>{const k=(Math.sin(t*o.v+o.p)+1)/2;put(Math.floor(o.y*(BY+BH)),Math.floor(o.x*COLS),k>.82?'*':k>.5?'+':'.',k>.82?'#e5e5e5':'#737373')});
  MOON.forEach((l,i)=>put(2+i,Math.floor(COLS*.82),l,'#fef3c7'));
@@ -328,7 +329,7 @@ function escena(now){
  // calle, luz que sale por la puerta y farolas
  const sr=BY+BH;put(sr,0,'='.repeat(COLS),'#525252');put(sr+1,0,'- '.repeat(Math.ceil(COLS/2)),'#404040');put(sr+2,0,'. '.repeat(Math.ceil(COLS/2)),'#262626');
  if(p>0)for(let k=0;k<3;k++){const w=18+k*8,c=BX+32-(w>>1);col('rgba(229,229,229,'+Math.max(0,.55*p-k*.12)+')');for(let i=0;i<w;i++)fx.fillText(k?'.':':',(c+i+.5)*CW,(sr+k)*CHh)}
- [BX-9,BX+BW+8].forEach((c,k)=>LAMP.forEach((l,i)=>put(sr-7+i,c,l,i<3?(!LS[k]?'#2a2a2a':Math.sin(t*9+c)>.95?'#404040':'#e5e5e5'):D2)));
+ reja(sr);[BX-9,BX+BW+8].forEach((c,k)=>{bk(sr-7,c,5,7);LAMP.forEach((l,i)=>put(sr-7+i,c,l,i<3?(!LS[k]?'#2a2a2a':Math.sin(t*9+c)>.95?'#404040':'#e5e5e5'):D2))});
  juegoDib(t,now,sr)}
 function setFase(f){fase=f;tf=performance.now();document.body.classList.toggle('cerrado',f=='cerrado');
  FC.style.display=f=='portal'?'none':'block';FC.style.opacity=1;window.ARK_PAUSA=(f=='cerrado'||f=='abriendo');
@@ -420,22 +421,69 @@ const MSG=["WE'RE CLOSED, COME BACK LATER","HEY... STOP KNOCKING","I SAID WE'RE 
 function golpear(){tono(95,.16,15);tono(210,.06,8);JG.k++;const i=MT.indexOf(JG.k);if(i>=0){JG.txt=MSG[i];JG.red=i>=3&&i<=5;JG.msgT=performance.now()+3500}}
 
 
-function usar(){if(fase!='cerrado')return;const x=BX+JG.x+1,L=[BX-7,BX+BW+10];
+const DOOR=['.-------.','|       |','|  [ ]  |','|       |','|     o |','|       |','|_______|'],BIN=['  ._______.  ',' /=========\\ ','|  [TRASH]  |','|           |','|___________|','  O       O  '];
+function puerta(){if(JG.go)return;JG.go=1;tono(95,.16,10);setTimeout(()=>tono(180,.25,6),180);setTimeout(()=>{location.href='secret.html'},600)}
+function ir(w,e){JG.back=w;if(w==1)JG.ax=e?COLS-9:4;else if(w==2)JG.ax=4;else JG.x=BW+6;JG.mv=false;const q=document.getElementById('espera');if(q)q.style.visibility=w?'hidden':'';tono(300,.08,4)}
+const bk=(r,c,w,h)=>{fx.fillStyle=BGC;fx.fillRect(c*CW,r*CHh,w*CW,h*CHh);lastCol=''};
+function callejon(t,now){const gr=BY+BH,WIN=['.-------.','|#|#|#|#|','|#|#|#|#|',"'-------'"],CR=['.-----.','|#####|','|#####|',"'-----'"];
+ STARS.forEach(o=>{const k=(Math.sin(t*o.v+o.p)+1)/2;put(Math.floor(o.y*BY),Math.floor(o.x*COLS),k>.82?'*':k>.5?'+':'.',k>.82?'#e5e5e5':'#737373')});
+ MOON.forEach((l,i)=>put(2+i,Math.floor(COLS*.82),l,'#fef3c7'));
+ put(BY+1,0,'='.repeat(COLS),D2);
+ for(let r=BY+2;r<gr;r++)put(r,0,(r%2?'|_____':'___|__').repeat(Math.ceil(COLS/6)+1).slice(0,COLS),'#1c1c1c');
+ const wc=Math.floor(COLS*.3);bk(gr-9,wc,9,4);WIN.forEach((l,i)=>put(gr-9+i,wc,l,'#737373'));
+ const pp=Math.floor(COLS*.55);bk(BY+2,pp,2,gr-BY-2);for(let r=BY+2;r<gr;r++)put(r,pp,'||',D2);
+ const lc=Math.floor(COLS*.7);bk(gr-10,lc,5,2);put(gr-10,lc+1,'(*)',Math.sin(t*9+2)>.93?'#404040':'#e5e5e5');put(gr-9,lc+2,'|','#525252');
+ put(gr,0,'='.repeat(COLS),G);put(gr+1,0,'- '.repeat(COLS>>1),D2);put(gr+2,0,'.  '.repeat(COLS/3|0),'#404040');
+ const pc=Math.floor(COLS*.42);bk(gr+1,pc,8,1);put(gr+1,pc,'~~~~~~~~','#404040');
+ const bc=Math.floor(COLS*.86);bk(gr-4,bc,7,4);CR.forEach((l,i)=>put(gr-4+i,bc,l,'#737373'));
+ const c=Math.round(JG.ax),f=JG.mv&&Math.floor(t*6)%2;
+ bk(gr-3,c,3,3);put(gr-3,c,' o ','#e5e5e5');put(gr-2,c,'/|\\','#e5e5e5');put(gr-1,c,f?' | ':'/ \\','#e5e5e5');
+ if(JG.ax<=12)put(gr-11,2,'< GO TO THE STREET','#a3a3a3');
+ if(JG.ax>=COLS-18)put(gr-11,COLS-19,'GO TO THE BACK >','#a3a3a3');
+ put(0,1,'ARROWS: WALK / SPACE: USE','#404040')}
+function reja(sr){const w=BX,y=sr-9;if(w<4)return;bk(y-1,0,w,10);
+ put(y,0,'='.repeat(w),'#737373');put(sr-1,0,'='.repeat(w),'#737373');
+ for(let r=y+1;r<sr-1;r++)put(r,0,(r%2?'x+':'+x').repeat((w>>1)+1).slice(0,w),'#404040');
+ for(let c=0;c<w;c+=5){for(let r=y;r<sr;r++)put(r,c,'|','#737373');put(y-1,c,'^','#737373')}for(let r=y;r<sr;r++)put(r,w-1,'|','#737373')}
+function atras(t,now){const sr=BY+BH,gr=sr;
+ STARS.forEach(o=>{const k=(Math.sin(t*o.v+o.p)+1)/2;put(Math.floor(o.y*BY),Math.floor(o.x*COLS),k>.82?'*':k>.5?'+':'.',k>.82?'#e5e5e5':'#737373')});
+ MOON.forEach((l,i)=>put(2+i,Math.floor(COLS*.82),l,'#fef3c7'));
+ put(BY+1,0,'='.repeat(COLS),D2);
+ for(let r=BY+2;r<gr;r++)put(r,0,(r%2?'|_____':'___|__').repeat(Math.ceil(COLS/6)+1).slice(0,COLS),'#1c1c1c');
+ [.28,.9].forEach(f=>{bk(BY+2,Math.floor(COLS*f),2,gr-BY-2);for(let r=BY+2;r<gr;r++)put(r,Math.floor(COLS*f),'||',D2)});
+ const dc=Math.floor(COLS*.2);bk(gr-7,dc,9,7);DOOR.forEach((l,i)=>put(gr-7+i,dc,l,'#737373'));
+ put(gr-9,dc+3,'(*)',Math.sin(t*9+3)>.93?'#404040':'#e5e5e5');
+ if(Math.abs(JG.ax+1-(dc+4.5))<6)put(gr-11,dc-3,'OPEN THE DOOR [SPACE]','#a3a3a3');
+ put(gr,0,'='.repeat(COLS),G);put(gr+1,0,'- '.repeat(COLS>>1),D2);put(gr+2,0,'.  '.repeat(COLS/3|0),'#404040');
+ [[.38,'[TRASH]'],[.62,'[ORGANIC]'],[.84,'[TRASH]']].forEach(([f,n])=>{const c=Math.floor(COLS*f);
+  bk(gr-6,c,13,6);bk(gr-2,c+14,7,2);const pd=11-n.length,lf=pd>>1;BIN.forEach((l,i)=>put(gr-6+i,c,i==2?'|'+' '.repeat(lf)+n+' '.repeat(pd-lf)+'|':l,i<2?'#a3a3a3':'#737373'));
+  put(gr-1,c+14,'(@)(@)','#525252');put(gr-2,c+15,'(@)','#525252')});
+ const c=Math.round(JG.ax),f=JG.mv&&Math.floor(t*6)%2;
+ fx.fillStyle=BGC;fx.fillRect(c*CW,(gr-3)*CHh,3*CW,3*CHh);lastCol='';
+ put(gr-3,c,' o ','#e5e5e5');put(gr-2,c,'/|\\','#e5e5e5');put(gr-1,c,f?' | ':'/ \\','#e5e5e5');
+ if(JG.ax<=10){put(gr-11,2,'< GO TO THE ALLEY','#a3a3a3');put(gr-10,2,'[SPACE]','#737373')}
+ put(0,1,'ARROWS: WALK / SPACE: USE','#404040')}
+function usar(){if(fase!='cerrado')return;if(JG.back){if(JG.back==2){if(Math.abs(JG.ax+1-(Math.floor(COLS*.2)+4.5))<6)puerta();else if(JG.ax<=10)ir(1,1)}return}const x=BX+JG.x+1,L=[BX-7,BX+BW+10];
+ if(JG.x>=BW-3&&JG.x<BW+3.5){ir(1);return}
  for(let k=0;k<2;k++)if(Math.abs(x-L[k])<5.5){lampara(k);return}
  if(Math.abs(x-(BX+32))<9)golpear()}
-function juegoUpd(now){const dt=Math.min(.05,(now-(JG.u||now))/1000);JG.u=now;if(fase!='cerrado')return;
- const d=(KEYS.arrowright||KEYS.d?1:0)-(KEYS.arrowleft||KEYS.a?1:0);JG.x=Math.max(-12,Math.min(BW+9,JG.x+d*14*dt));JG.mv=d!=0}
+function juegoUpd(now){const dt=Math.min(.05,(now-(JG.u||now))/1000);JG.u=now;if(fase!='cerrado'){if(JG.back)ir(0);return}
+ const d=(KEYS.arrowright||KEYS.d?1:0)-(KEYS.arrowleft||KEYS.a?1:0);if(JG.back)JG.ax=Math.max(2,Math.min(COLS-6,JG.ax+d*14*dt));else JG.x=Math.max(-12,Math.min(BW+9,JG.x+d*14*dt));JG.mv=d!=0;
+ if(JG.back==1){if(JG.ax>=COLS-6.5)ir(2);else if(JG.ax<=2.2)ir(0)}}
 function juegoDib(t,now,sr){if(fase!='cerrado')return;
  const c=Math.round(BX+JG.x),f=JG.mv&&Math.floor(t*6)%2;
  fx.fillStyle=BGC;fx.fillRect(c*CW,(sr-3)*CHh,3*CW,3*CHh);lastCol='';
  put(sr-3,c,' o ','#e5e5e5');put(sr-2,c,'/|\\','#e5e5e5');put(sr-1,c,f?' | ':'/ \\','#e5e5e5');
+ if(JG.x>=BW-3&&JG.x<BW+3.5){put(sr-9,BX+BW-4,'GO TO THE ALLEY >','#a3a3a3');put(sr-8,BX+BW-4,'[SPACE]','#737373')}
  if(JG.txt&&now<JG.msgT){const m='[ '+JG.txt+' ]';put(BY+9,BX+Math.floor((BW-m.length)/2),m,JG.red?'#ef4444':'#e5e5e5')}
  put(0,1,'ARROWS: WALK / SPACE: USE','#404040')}
 addEventListener('keydown',e=>{if(fase!='cerrado'||e.target.closest('#snd'))return;const k=e.key.toLowerCase();
- if(['arrowleft','arrowright','a','d'].includes(k)){KEYS[k]=1;e.preventDefault()}
+ if(['arrowleft','arrowright','arrowup','arrowdown','a','d','w','s'].includes(k)){KEYS[k]=1;e.preventDefault()}
  else if(k==' '||k=='enter'||k=='e'){e.preventDefault();if(!e.repeat)usar()}});
 addEventListener('keyup',e=>{delete KEYS[e.key.toLowerCase()]});addEventListener('blur',()=>{for(const q in KEYS)delete KEYS[q]});
 FC.addEventListener('click',e=>{if(fase!='cerrado')return;const c=e.clientX/CW,r=e.clientY/CHh,sr=BY+BH;
+ if(JG.back){if(JG.back==2){const dc=Math.floor(COLS*.2);if(c>=dc-1&&c<=dc+10&&r>=sr-11&&r<=sr)puerta();else if(JG.ax<=10&&r>=sr-12&&r<=sr&&c<32)ir(1,1)}return}
+ if(JG.x>=BW-3&&JG.x<BW+3.5&&c>=BX+BW-6&&c<=BX+BW+14&&r>=sr-11&&r<=sr-7){ir(1);return}
  [BX-9,BX+BW+8].forEach((l,k)=>{if(c>=l-1&&c<=l+6&&r>=sr-8&&r<=sr)lampara(k)});
  if(c>=BX+23&&c<=BX+41&&r>=BY+14&&r<=sr)golpear()});
 function actualizar(){const e=estado();
