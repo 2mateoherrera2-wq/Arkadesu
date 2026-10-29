@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arkadesu</title>
+<style>:root{color-scheme:dark}
+html,body{margin:0;min-height:100%;background:#050505;color:#a3a3a3;font:16px "Courier New",Consolas,monospace}
+main{max-width:640px;margin:0 auto;padding:70px 20px 40px;text-align:center}
+h1{margin:0 0 6px;color:#e5e5e5;font-size:1.5rem;letter-spacing:5px}
+.logo{display:inline-block;margin:0 0 10px;text-align:left;color:#a3a3a3;font:bold min(16px,2.5vw)/1.15 "Courier New",Consolas,monospace;white-space:pre}
+.s{margin:0 0 30px;color:#737373}
+.b{position:fixed;top:8px;left:8px;padding:4px 10px;font-weight:bold;color:#a3a3a3;background:rgba(5,5,5,.8);border:2px solid #525252;text-decoration:none}
+.b:hover{color:#e5e5e5;border-color:#a3a3a3}
+.g{display:block;margin:0 0 14px;padding:14px 18px;border:2px dashed #404040;color:#525252;text-decoration:none}
+a.g{border-style:solid;border-color:#737373;color:#a3a3a3}
+a.g:hover{border-color:#e5e5e5;color:#e5e5e5}
+.g b{display:block;font-size:1.1rem;letter-spacing:2px}
+.g small{display:block;margin-top:4px;color:#737373}
+</style></head><body>
+<a class="b" href="index.html">&lt;= GO BACK</a>
+<main><pre class="logo" aria-label="Arkadesu">
+    _     ____   _  __    _     ____   _____  ____   _   _ 
+   / \   |  _ \ | |/ /   / \   |  _ \ | ____|/ ___| | | | |
+  / _ \  | |_) || ' /   / _ \  | | | ||  _|  \___ \ | | | |
+ / ___ \ |  _ < | . \  / ___ \ | |_| || |___  ___) || |_| |
+/_/   \_\|_| \_\|_|\_\/_/   \_\|____/ |_____||____/  \___/ 
+</pre><p class="s">Backdoor</p><div id="l"></div></main>
+<script>
+// Add secret games here: folder = name of the game's folder (leave '' while it is still locked)
+const GAMES=[
+ {nombre:'Backdoor:001',carpeta:'backdoor001',desc:'Mono',meta:''},
+ {nombre:'Backdoor:002',carpeta:'',desc:'???',meta:'locked'}
+];
+const L=document.getElementById('l');
+GAMES.forEach(g=>{const e=document.createElement(g.carpeta?'a':'div');e.className='g';if(g.carpeta)e.href=g.carpeta+'/index.html';
+ e.innerHTML='<b></b><small></small>';e.firstChild.textContent=g.carpeta?g.nombre:'??? '+g.nombre.slice(-3);e.lastChild.textContent=g.carpeta?g.desc+(g.meta?' - '+g.meta:''):'???';L.appendChild(e)});
+</script></body></html>
