@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arkadesu</title>
+<style>html,body{margin:0;height:100%;background:#050505;display:flex;align-items:center;justify-content:center}canvas{width:min(100vw,calc(100vh*960/544));background:#0a0a0a}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px)}
+#portal{position:fixed;top:8px;left:8px;z-index:5;padding:4px 10px;font:bold 14px "Courier New",Consolas,monospace;color:#a3a3a3;background:rgba(5,5,5,.8);border:2px solid #525252;text-decoration:none;opacity:.6}
+#portal:hover{opacity:1;color:#e5e5e5;border-color:#a3a3a3}</style></head>
+<body><canvas id="c" width="960" height="544"></canvas>
+<a id="portal" href="../secret.html" tabindex="-1">&lt;= GO BACK</a>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+const C=document.getElementById('c'),X=C.getContext('2d'),CW=8,CH=16,CO=120,RO=34,BG='#0a0a0a',GY='#a3a3a3',DG='#525252',WT='#e5e5e5';
+const CC={R:'#f87171',Y:'#fde047',G:'#4ade80',B:'#60a5fa',W:'#e5e5e5'},CN={R:'RED',Y:'YELLOW',G:'GREEN',B:'BLUE'},C3={R:'RED',Y:'YLW',G:'GRN',B:'BLU'};
+let GR,fr=0,scene='title',AC=null,S=null;
+// ===== sonido =====
+function au(){if(AC===null){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){AC=0}}if(AC&&AC.state=='suspended')AC.resume()}
+function snd(f,d,t,v){if(!AC)return;const o=AC.createOscillator(),g=AC.createGain(),n=AC.currentTime;o.type=t;o.frequency.setValueAtTime(f,n);o.frequency.exponentialRampToValueAtTime(f*.6,n+d);g.gain.setValueAtTime(v*.4,n);g.gain.exponentialRampToValueAtTime(.001,n+d);o.connect(g);g.connect(AC.destination);o.start(n);o.stop(n+d)}
+// ===== texto en rejilla =====
+function clr(){GR=Array.from({length:RO},()=>Array(CO).fill(null))}
+function pc(c,r,ch,fg,bg){c=Math.floor(c);r=Math.floor(r);if(c<0||r<0||c>=CO||r>=RO)return;GR[r][c]=[ch,fg,bg]}
+function tx(s,c,r,fg,bg,al){s=String(s);if(al)c-=s.length>>1;for(let i=0;i<s.length;i++)if(s[i]!=' '||bg)pc(c+i,r,s[i],fg,bg)}
+function fl(c,r,w,h,bg){for(let y=0;y<h;y++)for(let x=0;x<w;x++)pc(c+x,r+y,' ',null,bg)}
+function bx(c,r,w,h,fg,fill){if(fill)fl(c,r,w,h,BG);for(let i=1;i<w-1;i++){pc(c+i,r,'-',fg);pc(c+i,r+h-1,'-',fg)}
+ for(let j=1;j<h-1;j++){pc(c,r+j,'|',fg);pc(c+w-1,r+j,'|',fg)}[[0,0],[w-1,0],[0,h-1],[w-1,h-1]].forEach(a=>pc(c+a[0],r+a[1],'+',fg))}
+function flush(){X.fillStyle=BG;X.fillRect(0,0,CO*CW,RO*CH);X.font='bold 14px "Courier New",monospace';X.textAlign='center';X.textBaseline='middle';let last='';
+ for(let r=0;r<RO;r++)for(let c=0;c<CO;c++){const k=GR[r][c];if(!k)continue;
+  if(k[2]){X.fillStyle=k[2];X.fillRect(c*CW,r*CH,CW,CH);last=''}
+  if(k[0]!=' '){if(k[1]!=last){X.fillStyle=k[1];last=k[1]}X.fillText(k[0],c*CW+CW/2,r*CH+CH/2+1)}}}
+// ===== MONO: reglas =====
+let mode='local',me=0,HUM=1,NP=4,net,conn,room='',toast='',tt=0,mi=0,sel=0,pk=false;
+const MENUS={menu:['vs cpu','online'],online:['host','join','go back'],cpus:['1 cpu','2 cpus','3 cpus','go back']};
+const nm=p=>mode=='local'?(p?'CPU '+p:'YOU'):(p<2?'P'+(p+1):'CPU '+(p-1)),isH=p=>p<HUM;
+function shuf(a){for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+function mkdeck(){const d=[];for(const c of 'RYGB'){d.push({c,v:'0'});for(let i=1;i<=9;i++)d.push({c,v:''+i},{c,v:''+i});['SKIP','REV','+2'].forEach(v=>d.push({c,v},{c,v}))}
+ for(let i=0;i<4;i++)d.push({c:'W',v:'WILD'},{c:'W',v:'+4'});return shuf(d)}
+function newGame(){S={deck:mkdeck(),disc:[],h:Array.from({length:NP},()=>[]),turn:0,dir:1,color:'R',ph:'play',msg:'',drawn:false,t:0,win:-1};
+ for(let i=0;i<7;i++)for(let p=0;p<NP;p++)S.h[p].push(S.deck.pop());
+ let c=S.deck.pop();while(c.c=='W'){S.deck.unshift(c);c=S.deck.pop()}
+ S.disc.push(c);S.color=c.c;S.msg=nm(0)+' STARTS';sel=0;pk=false;scene='game'}
+const ok=c=>c.c=='W'||c.c==S.color||c.v==S.disc[S.disc.length-1].v,nxt=(p,k=1)=>((p+S.dir*k)%NP+NP)%NP,lab=c=>c.c=='W'?c.v:CN[c.c]+' '+c.v;
+function draw(p,n){for(let i=0;i<n;i++){if(!S.deck.length){const t=S.disc.pop();S.deck=shuf(S.disc.splice(0));S.disc.push(t)}if(!S.deck.length)break;S.h[p].push(S.deck.pop())}}
+function pass(){S.turn=nxt(S.turn);S.drawn=false;S.t=0}
+function play(p,i,col){const c=S.h[p].splice(i,1)[0];S.disc.push(c);S.color=c.c=='W'?col:c.c;let m=nm(p)+' PLAYS '+lab(c),sk=0;
+ if(c.v=='SKIP'){sk=1;m+=' - SKIP'}else if(c.v=='REV'){S.dir*=-1;if(NP==2)sk=1;m+=' - REVERSE'}else if(c.v=='+2'){draw(nxt(p),2);sk=1;m+=' - +2'}else if(c.v=='+4'){draw(nxt(p),4);sk=1;m+=' - +4'}
+ if(c.c=='W')m+=' ('+CN[S.color]+')';
+ snd(c.c=='W'?300:500,.12,'square',.4);
+ if(!S.h[p].length){S.win=p;S.ph='over';S.msg=m;return}
+ if(S.h[p].length==1)m+='   MONO!';
+ S.msg=m;S.turn=nxt(p,1+sk);S.drawn=false;S.ph='play';S.t=0}
+function cpuTurn(){const p=S.turn,h=S.h[p];let cand=h.map((c,i)=>i).filter(i=>ok(h[i]));
+ if(!cand.length){draw(p,1);const j=h.length-1;if(ok(h[j]))cand=[j];else{S.msg=nm(p)+' DRAWS A CARD';pass();return}}
+ const i=cand.find(i=>h[i].c!='W')??cand[0],c=h[i];let col=c.c;
+ if(c.c=='W'){const n={R:0,Y:0,G:0,B:0};h.forEach(x=>{if(x.c!='W')n[x.c]++});col=Object.keys(n).sort((a,b)=>n[b]-n[a])[0]}
+ play(p,i,col)}
+function doAct(p,a){if(!S||S.ph!='play'||S.turn!=p)return;
+ if(a.k=='play'){const c=S.h[p][a.i];if(c&&ok(c)&&('RYGB'.includes(a.col)||c.c!='W'))play(p,a.i,a.col)}
+ else if(a.k=='draw'){if(S.drawn)pass();else{draw(p,1);S.drawn=true;S.t=0;S.msg=nm(p)+' DRAWS A CARD';snd(600,.08,'square',.4)}}}
+function act(a){if(mode=='guest'){conn&&conn.open&&conn.send({t:'act',a})}else doAct(0,a)}
+function upd(){if(tt>0)tt--;if(!S||scene!='game')return;
+ sel=Math.max(0,Math.min(sel,S.h[me].length-1));
+ if(mode=='host'&&fr%3==0)snap();
+ if(S.ph!='play'||mode=='guest')return;
+ if(!isH(S.turn)){if(++S.t>70)cpuTurn()}
+ else if(S.drawn&&!S.h[S.turn].some(ok)&&++S.t>60)pass()}
+// ===== online (WebRTC con PeerJS, sin servidor propio) =====
+function leave(m){try{conn&&conn.close();net&&net.destroy()}catch(e){}conn=net=null;mode='local';me=0;HUM=1;S=null;pk=false;scene='menu';mi=0;if(m){toast=m;tt=200}}
+function host(){if(typeof Peer=='undefined'){leave('Network error: no connection');return}try{net&&net.destroy()}catch(e){}mode='host';me=0;HUM=2;NP=4;scene='wait';room='';conn=null;
+ const code=Math.random().toString(36).slice(2,6).toUpperCase();net=new Peer('backdoor001-'+code);
+ net.on('open',()=>room=code);
+ net.on('error',e=>e.type=='unavailable-id'?host():leave('Network error: '+e.type));
+ net.on('connection',c=>{if(conn)return;conn=c;setup(c)})}
+function join(){if(typeof Peer=='undefined'){leave('Network error: no connection');return}const code=(prompt('Room code (4 letters):')||'').trim().toUpperCase();if(!code)return;
+ mode='guest';me=1;HUM=2;NP=4;scene='wait';room='';S=null;
+ net=new Peer();net.on('error',e=>leave(e.type=='peer-unavailable'?'Room not found':'Network error: '+e.type));
+ net.on('open',()=>{conn=net.connect('backdoor001-'+code);setup(conn)})}
+function setup(c){const go=()=>{if(mode=='host')newGame()};c.open?go():c.on('open',go);
+ c.on('data',onData);c.on('close',()=>{if(conn==c)leave('Opponent disconnected')})}
+function snap(){if(!conn||!conn.open)return;conn.send({t:'s',turn:S.turn,dir:S.dir,color:S.color,ph:S.ph,msg:S.msg,win:S.win,drawn:S.drawn,hc:S.h.map(h=>h.length),dk:S.deck.length,top:S.disc[S.disc.length-1],mh:S.h[1]})}
+function onData(d){
+ if(d.t=='act'){if(mode=='host')doAct(1,d.a)}
+ else if(d.t=='again'){if(mode=='host'&&S&&S.ph=='over')newGame()}
+ else if(d.t=='s'&&mode=='guest'){const o=S;
+  S={turn:d.turn,dir:d.dir,color:d.color,ph:d.ph,msg:d.msg,win:d.win,drawn:d.drawn,deck:new Array(d.dk),disc:[d.top],h:d.hc.map((n,i)=>i==me?d.mh:new Array(n).fill(null)),t:0};scene='game';
+  if(o&&o.h[me].length<d.mh.length)sel=d.mh.length-1;
+  if(!o||o.msg!=d.msg)snd(500,.1,'square',.4)}}
+// ===== dibujo =====
+function card(x,y,c,col){bx(x,y,6,5,col,1);tx(c.v.padEnd(4),x+1,y+1,col);tx(c.c=='W'?' ***':' '+C3[c.c],x+1,y+2,col);tx(c.v.padStart(4),x+1,y+3,col)}
+function menu(t,L){tx('=== '+t+' ===',60,5,WT,0,1);
+ L.forEach((s,i)=>{const r=10+i*4,on=i==mi;bx(38,r,44,3,on?WT:DG,1);if(on)fl(39,r+1,42,1,WT);tx(s.toUpperCase(),60,r+1,on?BG:GY,on?WT:0,1)});
+ tx('UP/DOWN + ENTER     ESC: BACK',60,31,DG,0,1)}
+function wt(){bx(40,8,40,9,WT,1);tx(room?'ONLINE ROOM':'CONNECTING '+'|/-\\'[fr>>3&3],60,10,WT,0,1);
+ if(room)tx(' '+[...room].join('  ')+' ',60,12,BG,WT,1);tx(room?'YOUR RIVAL: ONLINE > JOIN ROOM':'ONE MOMENT',60,14,DG,0,1);tx('ESC TO CANCEL',60,15,DG,0,1)}
+function ui(){
+ if(!S){tx('ONE MOMENT',60,16,DG,0,1);return}
+ tx('M O N O',60,1,WT,0,1);tx('BACKDOOR:001',60,2,DG,0,1);
+ for(let k=1;k<NP;k++){const s=(me+k)%NP,c=60-(((NP-1)*36-12)>>1)+(k-1)*36,on=S.turn==s&&S.ph=='play',n=S.h[s].length;
+  bx(c,4,24,5,on?WT:DG,1);tx(nm(s),c+12,5,on?WT:GY,0,1);tx('CARDS: '+n,c+12,6,GY,0,1);tx(n==1?'MONO!':'[]'.repeat(Math.min(n,9)),c+12,7,n==1?CC.R:DG,0,1)}
+ tx(S.dir>0?'>>>  CLOCKWISE  >>>':'<<<  REVERSE  <<<',60,10,DG,0,1);
+ bx(40,11,8,5,DG,1);tx('MONO',44,12,GY,0,1);tx(String(S.deck.length),44,14,DG,0,1);
+ const t=S.disc[S.disc.length-1];card(66,11,t,CC[t.c]);
+ tx('COLOR: '+CN[S.color],60,17,CC[S.color],0,1);
+ tx(S.msg,60,19,GY,0,1);
+ const h=S.h[me],N=Math.min(h.length,16),st=Math.max(0,Math.min(sel-8,h.length-N)),x0=60-(N*7>>1),my=S.turn==me&&S.ph=='play';
+ for(let i=st;i<st+N;i++){const x=x0+(i-st)*7,up=my&&i==sel,y=up?21:22;card(x,y,h[i],my&&!ok(h[i])?'#404040':CC[h[i].c]);if(up)tx('^',x+3,27,WT)}
+ tx('YOUR CARDS: '+h.length+(st>0?'  <':'')+(st+N<h.length?'  >':''),60,29,DG,0,1);
+ tx(my?(h.some(ok)?'YOUR TURN':'YOUR TURN - NO PLAYS: PRESS D TO DRAW'):'WAIT...',60,30,my?WT:DG,0,1);
+ tx('LEFT/RIGHT: CHOOSE    ENTER: PLAY    D: DRAW / PASS    ESC: LEAVE',60,32,DG,0,1);
+ if(mode!='local')tx('ONLINE: THE MATCH DOES NOT STOP',60,33,'#f87171',0,1);
+ if(pk){bx(34,12,52,7,WT,1);tx('CHOOSE A COLOR',60,13,WT,0,1);
+  [['R','RED'],['Y','YELLOW'],['G','GREEN'],['B','BLUE']].forEach((o,i)=>tx(o[0]+' '+o[1],42+i*11,16,CC[o[0]]));tx('PRESS R, Y, G OR B',60,17,DG,0,1)}
+ if(S.ph=='over'){bx(40,12,40,7,WT,1);tx(S.win==me?'YOU WIN!':nm(S.win)+' WINS',60,14,S.win==me?CC.G:CC.R,0,1);tx('ENTER: PLAY AGAIN   ESC: LEAVE',60,17,GY,0,1)}}
+function draw_(){fr++;clr();
+ if(scene=='title'){tx('M O N O',60,10,WT,0,1);tx('BACKDOOR:001',60,13,DG,0,1);if(fr%60<40)tx('[ PRESS START ]',60,18,GY,0,1);tx('ESC: LEAVE',60,30,DG,0,1)}
+ else if(scene=='game')ui();
+ else if(scene=='wait')wt();
+ else menu(scene=='online'?'ONLINE':scene=='cpus'?'VS CPU':'MAIN MENU',MENUS[scene]);
+ if(tt>0){fl(0,0,CO,1,'#7f1d1d');tx(toast,60,0,WT,'#7f1d1d',1)}
+ flush()}
+function pick(i){
+ if(scene=='menu'){if(i==0){scene='cpus';mi=2}else{scene='online';mi=0}}
+ else if(scene=='cpus'){if(i<3){mode='local';me=0;HUM=1;NP=i+2;newGame()}else{scene='menu';mi=0}}
+ else if(scene=='online'){if(i==0)host();else if(i==1)join();else{scene='menu';mi=1}}}
+addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['arrowleft','arrowright','arrowup','arrowdown',' ','enter'].includes(k))e.preventDefault();if(e.repeat)return;au();
+ if(scene=='title'){if(k=='enter'||k==' '){scene='menu';mi=0}else if(k=='escape')location.href='../secret.html';return}
+ if(scene=='wait'){if(k=='escape')leave();return}
+ if(MENUS[scene]){const L=MENUS[scene];if(k=='arrowup'||k=='w')mi=(mi+L.length-1)%L.length;else if(k=='arrowdown'||k=='s')mi=(mi+1)%L.length;else if(k=='enter'||k==' ')pick(mi);else if(k=='escape'){if(scene=='online'){scene='menu';mi=1}else if(scene=='cpus'){scene='menu';mi=0}else scene='title'}return}
+ if(!S){if(k=='escape')leave();return}
+ if(k=='escape'){if(pk)pk=false;else leave();return}
+ if(S.ph=='over'){if(k=='enter'){if(mode=='guest')conn&&conn.open&&conn.send({t:'again'});else newGame()}return}
+ if(pk){const col={r:'R',y:'Y',g:'G',b:'B','1':'R','2':'Y','3':'G','4':'B'}[k];if(col){act({k:'play',i:sel,col});pk=false}return}
+ if(S.turn!=me)return;
+ const h=S.h[me];
+ if(k=='arrowleft')sel=(sel+h.length-1)%h.length;else if(k=='arrowright')sel=(sel+1)%h.length;
+ else if(k=='enter'||k==' '){const c=h[sel];if(!c)return;if(ok(c)){if(c.c=='W')pk=true;else act({k:'play',i:sel})}else{toast="YOU CAN'T PLAY THAT CARD";tt=90}}
+ else if(k=='d'){act({k:'draw'});if(mode!='guest')sel=Math.max(0,S.h[me].length-1)}});
+(function loop(){upd();draw_();requestAnimationFrame(loop)})();
+</script></body></html>
